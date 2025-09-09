@@ -4,11 +4,21 @@ import Dashboard from '../components/Dashboard';
 import CarProfile from '../components/CarProfile';
 import CarRefuelings from '../components/CarRefuelings';
 import CarSettings from '../components/CarSettings';
+import LoginPage from '../components/LoginPage';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />
+  },
+  {
     path: '/',
-    element: <Layout />,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,

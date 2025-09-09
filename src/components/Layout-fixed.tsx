@@ -43,10 +43,46 @@ export default function Layout() {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { token, user, logout } = useAuth();
+  const { selectedCarId, token, user, logout } = useAuth();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Prüfe ob wir auf dem Dashboard sind
+  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
+
+  // Bestimme das Hintergrundbild nur für das Dashboard
+  const getBackgroundImage = () => {
+    // Hintergrundbild nur auf Dashboard und nur auf Desktop
+    if (isMobile || !isDashboard) {
+      return null;
+    }
+    
+    console.log(`Getting background image. Cars available: ${cars.length}, selectedCarId: ${selectedCarId}`);
+    
+    // Verwende das ausgewählte Auto aus dem Auth-Context
+    if (selectedCarId) {
+      const authSelectedCar = cars.find(car => car.id === selectedCarId);
+      if (authSelectedCar && authSelectedCar.image) {
+        console.log(`Using auth selected car background: ${authSelectedCar.manufacturer} ${authSelectedCar.model}`);
+        return authSelectedCar.image;
+      }
+    }
+    
+    // Fallback: Erstes Auto mit Bild für Dashboard
+    const carWithImage = cars.find(car => car.image);
+    if (carWithImage) {
+      console.log(`Using dashboard background: ${carWithImage.manufacturer} ${carWithImage.model}`);
+      return carWithImage.image;
+    } else {
+      console.log('No car with image found for dashboard background');
+    }
+    
+    return null;
+  };
+
+  // Reaktive Berechnung des Hintergrundbilds - nur für Dashboard
+  const backgroundImage = isDashboard ? getBackgroundImage() : null;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -69,21 +105,6 @@ export default function Layout() {
     }
   };
 
-  useEffect(() => {
-    fetchCars();
-  }, []);
-
-  useEffect(() => {
-    // Aktualisiere das ausgewählte Auto basierend auf der URL
-    const carId = location.pathname.match(/\/cars\/(\d+)/)?.[1];
-    if (carId) {
-      const car = cars.find(c => c.id === parseInt(carId));
-      setSelectedCar(car || null);
-    } else {
-      setSelectedCar(null);
-    }
-  }, [location.pathname, cars]);
-
   const handleCarMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -93,17 +114,27 @@ export default function Layout() {
   };
 
   const handleCarSelect = (car: Car) => {
-    navigate(`/cars/${car.id}/overview`);
+    setSelectedCar(car);
     handleCarMenuClose();
+    
+    // Update route to selected car
+    navigate(`/cars/${car.id}/overview`);
   };
 
   const handleAddCar = async (newCar: Omit<Car, 'id' | 'created_at' | 'updated_at' | 'refuelings'>) => {
     try {
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/cars`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(newCar),
       });
       if (!response.ok) throw new Error('Fehler beim Speichern');
@@ -115,6 +146,24 @@ export default function Layout() {
       console.error('Error adding car:', error);
     }
   };
+
+  useEffect(() => {
+    fetchCars();
+  }, [token]);
+
+  // Update selected car when route changes
+  useEffect(() => {
+    const match = location.pathname.match(/\/cars\/(\d+)/);
+    if (match) {
+      const carId = parseInt(match[1]);
+      const car = cars.find(c => c.id === carId);
+      if (car) {
+        setSelectedCar(car);
+      }
+    } else {
+      setSelectedCar(null);
+    }
+  }, [location.pathname, cars]);
 
   const drawer = (
     <Box>
@@ -161,7 +210,9 @@ export default function Layout() {
           <Button
             startIcon={<AddIcon />}
             onClick={() => setIsAddDialogOpen(true)}
+            variant="text"
             fullWidth
+            sx={{ justifyContent: 'flex-start' }}
           >
             Fahrzeug hinzufügen
           </Button>
@@ -174,13 +225,49 @@ export default function Layout() {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
       
+      {/* Hintergrundbild nur für Dashboard */}
+      {!isMobile && isDashboard && backgroundImage && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            zIndex: -2,
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(255, 255, 255, 0.85)',
+              zIndex: 1
+            }
+          }}
+        />
+      )}
+      
+      {/* Debug Info nur für Dashboard */}
+      {!isMobile && isDashboard && (
+        <Box sx={{ position: 'fixed', top: 10, right: 10, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', p: 1, fontSize: '12px' }}>
+          Background: {backgroundImage ? 'YES' : 'NO'} | Cars: {cars.length}
+        </Box>
+      )}
+      
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          backgroundColor: 'primary.main',
-          color: 'primary.contrastText'
+          backgroundColor: (isDashboard && backgroundImage && !isMobile) ? 'rgba(255, 255, 255, 0.95)' : 'primary.main',
+          backdropFilter: (isDashboard && backgroundImage && !isMobile) ? 'blur(10px)' : 'none',
+          color: (isDashboard && backgroundImage && !isMobile) ? 'text.primary' : 'primary.contrastText'
         }}
       >
         <Toolbar>
@@ -195,15 +282,13 @@ export default function Layout() {
           </IconButton>
           {selectedCar ? (
             <>
-              <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                {`${selectedCar.manufacturer} ${selectedCar.model}`}
-              </Typography>
               <Button
                 color="inherit"
                 onClick={handleCarMenuClick}
-                startIcon={<DirectionsCarIcon />}
+                endIcon={<DirectionsCarIcon />}
+                sx={{ flexGrow: 1, justifyContent: 'flex-start' }}
               >
-                Fahrzeug wechseln
+                {`${selectedCar.manufacturer} ${selectedCar.model}`}
               </Button>
               <Menu
                 anchorEl={anchorEl}
@@ -254,6 +339,7 @@ export default function Layout() {
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        aria-label="mailbox folders"
       >
         <Drawer
           variant="temporary"
@@ -276,7 +362,8 @@ export default function Layout() {
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
               width: drawerWidth,
-              backgroundColor: 'background.paper'
+              backgroundColor: (isDashboard && backgroundImage && !isMobile) ? 'rgba(255, 255, 255, 0.95)' : 'background.paper',
+              backdropFilter: (isDashboard && backgroundImage && !isMobile) ? 'blur(10px)' : 'none'
             },
           }}
           open

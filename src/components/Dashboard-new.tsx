@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia } from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import EventIcon from '@mui/icons-material/Event';
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddRefuelingDialog from './AddRefuelingDialog';
-import RecentRefuelings from './RecentRefuelings';
-import RefuelingChart from './RefuelingChart';
-import AddEventDialog from './AddEventDialog';
-import { useAuth } from '../contexts/AuthContext';
 import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
@@ -17,50 +10,11 @@ import { API_BASE_URL } from '../config/api';
 export default function Dashboard() {
     const [cars, setCars] = useState<Car[]>([]);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
-    const [currentCarIndex, setCurrentCarIndex] = useState(0);
     const [isAddRefuelingDialogOpen, setIsAddRefuelingDialogOpen] = useState(false);
-    const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
     
-    const { setSelectedCar: setSelectedCarInAuth } = useAuth();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-    // Funktionen zum Auto-Wechseln mit JWT Token Update
-    const goToPreviousCar = async () => {
-        if (cars.length > 0) {
-            const newIndex = currentCarIndex > 0 ? currentCarIndex - 1 : cars.length - 1;
-            const newCar = cars[newIndex];
-            
-            setCurrentCarIndex(newIndex);
-            setSelectedCar(newCar);
-            
-            // JWT Token mit neuer Auto-ID aktualisieren
-            try {
-                await setSelectedCarInAuth(newCar.id);
-            } catch (error) {
-                console.error('Fehler beim Aktualisieren der Auto-Auswahl:', error);
-            }
-        }
-    };
-
-    const goToNextCar = async () => {
-        if (cars.length > 0) {
-            const newIndex = currentCarIndex < cars.length - 1 ? currentCarIndex + 1 : 0;
-            const newCar = cars[newIndex];
-            
-            setCurrentCarIndex(newIndex);
-            setSelectedCar(newCar);
-            
-            // JWT Token mit neuer Auto-ID aktualisieren
-            try {
-                await setSelectedCarInAuth(newCar.id);
-            } catch (error) {
-                console.error('Fehler beim Aktualisieren der Auto-Auswahl:', error);
-            }
-        }
-    };
 
     const fetchCars = async () => {
         try {
@@ -81,17 +35,9 @@ export default function Dashboard() {
             setCars(data);
             setError(null);
             
-            // Erstes Auto als ausgewählt setzen und im JWT Token speichern
+            // Erstes Auto als ausgewählt setzen
             if (data.length > 0) {
                 setSelectedCar(data[0]);
-                setCurrentCarIndex(0);
-                
-                // JWT Token mit der Auto-ID aktualisieren
-                try {
-                    await setSelectedCarInAuth(data[0].id);
-                } catch (error) {
-                    console.error('Fehler beim Initialisieren der Auto-Auswahl:', error);
-                }
             }
             
             console.log('Geladene Autos:', data);
@@ -120,16 +66,11 @@ export default function Dashboard() {
             if (!response.ok) throw new Error('Fehler beim Speichern');
             
             setIsAddRefuelingDialogOpen(false);
-            setRefuelingUpdateTrigger(prev => prev + 1); // Triggert Update der RecentRefuelings
             // Optional: Refresh data or show success message
         } catch (error) {
             console.error('Error adding refueling:', error);
             setError(error instanceof Error ? error.message : 'Fehler beim Speichern der Tankung');
         }
-    };
-
-    const handleAddEvent = () => {
-        setRefuelingUpdateTrigger(prev => prev + 1); // Triggert Update der Charts (Events werden in Charts angezeigt)
     };
 
     useEffect(() => {
@@ -174,70 +115,30 @@ export default function Dashboard() {
 
     return (
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-            {/* Begrüßung mit Auto-Name und Navigation */}
+            {/* Begrüßung mit Auto-Name */}
             <Paper sx={{ 
                 p: 3, 
                 mb: 3, 
+                backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                backdropFilter: 'blur(10px)',
                 textAlign: 'center'
             }}>
                 <Typography variant="h4" component="h1" gutterBottom>
                     Willkommen zurück!
                 </Typography>
-                {selectedCar && cars.length > 0 && (
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: 2,
-                        mt: 2 
-                    }}>
-                        {/* Zurück Button - nur anzeigen wenn mehr als 1 Auto */}
-                        {cars.length > 1 && (
-                            <IconButton 
-                                onClick={goToPreviousCar}
-                                sx={{ 
-                                    color: 'primary.main',
-                                    '&:hover': { backgroundColor: 'primary.light', color: 'white' }
-                                }}
-                                size="large"
-                            >
-                                <ArrowBackIosIcon />
-                            </IconButton>
-                        )}
-                        
-                        {/* Auto-Name */}
-                        <Box sx={{ textAlign: 'center', minWidth: 200 }}>
-                            <Typography variant="h5" color="primary" sx={{ fontWeight: 'medium' }}>
-                                {selectedCar.manufacturer} {selectedCar.model}
-                            </Typography>
-                            {cars.length > 1 && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    {currentCarIndex + 1} von {cars.length}
-                                </Typography>
-                            )}
-                        </Box>
-                        
-                        {/* Vor Button - nur anzeigen wenn mehr als 1 Auto */}
-                        {cars.length > 1 && (
-                            <IconButton 
-                                onClick={goToNextCar}
-                                sx={{ 
-                                    color: 'primary.main',
-                                    '&:hover': { backgroundColor: 'primary.light', color: 'white' }
-                                }}
-                                size="large"
-                            >
-                                <ArrowForwardIosIcon />
-                            </IconButton>
-                        )}
-                    </Box>
+                {selectedCar && (
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'medium' }}>
+                        {selectedCar.manufacturer} {selectedCar.model}
+                    </Typography>
                 )}
             </Paper>
 
             {/* Große Auto-Karte */}
             {selectedCar && (
                 <Card sx={{ 
-                    mb: 3
+                    mb: 3, 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    backdropFilter: 'blur(10px)' 
                 }}>
                     {selectedCar.image ? (
                         <CardMedia
@@ -282,50 +183,26 @@ export default function Dashboard() {
                 </Card>
             )}
 
-            {/* Letzte Tankungen */}
-            <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
-
-            {/* Tankstatistiken Chart */}
-            <RefuelingChart refreshTrigger={refuelingUpdateTrigger} />
-
-            {/* Action Buttons */}
+            {/* Tankung hinzufügen Button */}
             <Paper sx={{ 
                 p: 3, 
+                backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                backdropFilter: 'blur(10px)',
                 textAlign: 'center'
             }}>
-                <Box sx={{ 
-                    display: 'flex', 
-                    gap: 2, 
-                    flexDirection: isMobile ? 'column' : 'row',
-                    justifyContent: 'center'
-                }}>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        startIcon={<LocalGasStationIcon />}
-                        onClick={() => setIsAddRefuelingDialogOpen(true)}
-                        sx={{ 
-                            py: 2,
-                            fontSize: '1.1rem',
-                            flex: isMobile ? 1 : 'none'
-                        }}
-                    >
-                        Neue Tankung
-                    </Button>
-                    <Button
-                        variant="outlined"
-                        size="large"
-                        startIcon={<EventIcon />}
-                        onClick={() => setIsAddEventDialogOpen(true)}
-                        sx={{ 
-                            py: 2,
-                            fontSize: '1.1rem',
-                            flex: isMobile ? 1 : 'none'
-                        }}
-                    >
-                        Ereignis hinzufügen
-                    </Button>
-                </Box>
+                <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<LocalGasStationIcon />}
+                    onClick={() => setIsAddRefuelingDialogOpen(true)}
+                    fullWidth={isMobile}
+                    sx={{ 
+                        py: 2,
+                        fontSize: '1.1rem'
+                    }}
+                >
+                    Neue Tankung hinzufügen
+                </Button>
             </Paper>
 
             {/* Dialogs */}
@@ -333,13 +210,7 @@ export default function Dashboard() {
                 open={isAddRefuelingDialogOpen}
                 onClose={() => setIsAddRefuelingDialogOpen(false)}
                 onAdd={handleAddRefueling}
-                currentCar={selectedCar}
-            />
-            
-            <AddEventDialog 
-                open={isAddEventDialogOpen}
-                onClose={() => setIsAddEventDialogOpen(false)}
-                onAdd={handleAddEvent}
+                cars={cars}
             />
         </Container>
     );

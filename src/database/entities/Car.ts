@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from "typeorm";
 import { Refueling } from "./Refueling";
+import { User } from "./User";
+import { CarEvent } from "./CarEvent";
 
 @Entity()
 export class Car {
@@ -28,6 +30,15 @@ export class Car {
     fuel!: string; // Benzin/Diesel/Elektro/Hybrid
 
     @Column({ nullable: true })
+    userId!: number;
+
+    @ManyToOne(() => User, user => user.cars)
+    user!: User;
+
+    @Column({ nullable: true })
+    image?: string;
+
+    @Column({ nullable: true })
     engineSize?: number; // Hubraum in ccm
 
     @Column({ nullable: true })
@@ -51,6 +62,9 @@ export class Car {
 
     @OneToMany(() => Refueling, refueling => refueling.car)
     refuelings!: Refueling[];
+
+    @OneToMany(() => CarEvent, event => event.car)
+    events!: CarEvent[];
 
     // Berechnete Felder (werden nicht in der DB gespeichert)
     averageConsumption?: number;
