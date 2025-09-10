@@ -159,7 +159,7 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
 
     if (refuelings.length === 0) {
         return (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
+            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
                 <LocalGasStationIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                     Noch keine Tankungen erfasst
@@ -173,24 +173,39 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
     }
 
     return (
-        <Paper sx={{ p: 0 }}>
+        <Paper sx={{ p: 0, mb: 4 }}>
             <Box sx={{ p: 3, pb: 1 }}>
-                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <LocalGasStationIcon color="primary" />
                     Letzte Tankungen
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    Die letzten {Math.min(5, refuelings.length)} Tankungen
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Die letzten {Math.min(4, refuelings.length)} Tankungen
                 </Typography>
             </Box>
 
-            <List sx={{ pt: 0 }}>
-                {refuelings.map((refueling, index) => (
-                    <Box key={refueling.id}>
-                        <ListItem sx={{ px: 3, py: 2 }}>
+            <List sx={{ pt: 0, pb: 1 }}>
+                {refuelings.slice(0, 4).map((refueling, index) => {
+                    // Berechne Opacity für Fade-Out-Effekt (Apple-Style)
+                    const getOpacity = (idx: number) => {
+                        if (idx === 0) return 1;        // Erste: volle Opacity
+                        if (idx === 1) return 0.85;     // Zweite: leicht reduziert
+                        if (idx === 2) return 0.65;     // Dritte: mittlere Opacity
+                        return 0.4;                     // Vierte: stark reduziert (Fade-Out)
+                    };
+
+                    return (
+                        <Box 
+                            key={refueling.id}
+                            sx={{
+                                opacity: getOpacity(index),
+                                transition: 'opacity 0.3s ease-in-out'
+                            }}
+                        >
+                        <ListItem sx={{ px: 3, py: 0 }}>
                             <ListItemText
                                 primary={
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
                                             {formatDate(refueling.date)}
                                         </Typography>
@@ -226,9 +241,10 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
                                 <EditIcon fontSize="small" />
                             </IconButton>
                         </ListItem>
-                        {index < refuelings.length - 1 && <Divider />}
+                        {index < refuelings.slice(0, 4).length - 1 && <Divider />}
                     </Box>
-                ))}
+                    );
+                })}
             </List>
 
             {/* Edit Refueling Dialog */}

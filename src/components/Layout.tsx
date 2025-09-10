@@ -31,6 +31,7 @@ import { API_BASE_URL } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 import AddCarDialog from './AddCarDialog';
 import LoginDialog from './LoginDialog';
+import SettingsMenu from './SettingsMenu';
 
 const drawerWidth = 280;
 
@@ -226,6 +227,9 @@ export default function Layout() {
               Dashboard
             </Typography>
           )}
+          
+          {/* Settings Menu */}
+          <SettingsMenu />
           
           {/* Auth Buttons */}
           <Box sx={{ ml: 2 }}>

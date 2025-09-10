@@ -291,11 +291,17 @@ export default function AddEventDialog({ open, onClose, onAdd }: AddEventDialogP
                 )}
             </DialogContent>
 
-            <DialogActions>
+            <DialogActions sx={{ 
+                flexWrap: 'wrap', 
+                justifyContent: 'flex-end',
+                gap: 1,
+                p: 2
+            }}>
                 <Button 
                     onClick={handleClose} 
                     disabled={loading}
                     startIcon={<CancelIcon />}
+                    sx={{ minWidth: 'auto', flexShrink: 0 }}
                 >
                     Abbrechen
                 </Button>
@@ -307,6 +313,7 @@ export default function AddEventDialog({ open, onClose, onAdd }: AddEventDialogP
                     variant="contained" 
                     disabled={loading}
                     startIcon={<SaveIcon />}
+                    sx={{ minWidth: 'auto', flexShrink: 0 }}
                 >
                     {loading ? 'Hinzufügen...' : 'Hinzufügen'}
                 </Button>

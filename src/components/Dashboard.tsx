@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider } from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import EventIcon from '@mui/icons-material/Event';
@@ -10,6 +10,7 @@ import RecentRefuelings from './RecentRefuelings';
 import RefuelingChart from './RefuelingChart';
 import AddEventDialog from './AddEventDialog';
 import { useAuth } from '../contexts/AuthContext';
+import { useSimpleDynamicTheme } from '../hooks/useSimpleDynamicTheme';
 import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
@@ -24,8 +25,14 @@ export default function Dashboard() {
     const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
     
     const { setSelectedCar: setSelectedCarInAuth } = useAuth();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const fallbackTheme = useTheme();
+    const isMobile = useMediaQuery(fallbackTheme.breakpoints.down('md'));
+    
+    // Dynamisches Theme basierend auf Auto-Bild (nur Akzentfarben)
+    const { theme: dynamicTheme, extractedColors } = useSimpleDynamicTheme({
+        imageUrl: selectedCar?.image,
+        baseTheme: fallbackTheme
+    });
 
     // Funktionen zum Auto-Wechseln mit JWT Token Update
     const goToPreviousCar = async () => {
@@ -173,13 +180,14 @@ export default function Dashboard() {
     }
 
     return (
-        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-            {/* Begrüßung mit Auto-Name und Navigation */}
-            <Paper sx={{ 
-                p: 3, 
-                mb: 3, 
-                textAlign: 'center'
-            }}>
+        <ThemeProvider theme={dynamicTheme || fallbackTheme}>
+            <Container maxWidth="lg" sx={{ mt: 3, mb: 4 }}>
+                {/* Begrüßung mit Auto-Name und Navigation */}
+                <Paper sx={{ 
+                    p: 3, 
+                    mb: 4, 
+                    textAlign: 'center'
+                }}>
                 <Typography variant="h4" component="h1" gutterBottom>
                     Willkommen zurück!
                 </Typography>
@@ -237,7 +245,8 @@ export default function Dashboard() {
             {/* Große Auto-Karte */}
             {selectedCar && (
                 <Card sx={{ 
-                    mb: 3
+                    mb: 4,
+                    boxShadow: 3
                 }}>
                     {selectedCar.image ? (
                         <CardMedia
@@ -282,15 +291,10 @@ export default function Dashboard() {
                 </Card>
             )}
 
-            {/* Letzte Tankungen */}
-            <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
-
-            {/* Tankstatistiken Chart */}
-            <RefuelingChart refreshTrigger={refuelingUpdateTrigger} />
-
             {/* Action Buttons */}
             <Paper sx={{ 
                 p: 3, 
+                mb: 4,
                 textAlign: 'center'
             }}>
                 <Box sx={{ 
@@ -328,6 +332,12 @@ export default function Dashboard() {
                 </Box>
             </Paper>
 
+            {/* Tankstatistiken Chart */}
+            <RefuelingChart refreshTrigger={refuelingUpdateTrigger} />
+
+            {/* Letzte Tankungen */}
+            <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
+
             {/* Dialogs */}
             <AddRefuelingDialog 
                 open={isAddRefuelingDialogOpen}
@@ -341,6 +351,50 @@ export default function Dashboard() {
                 onClose={() => setIsAddEventDialogOpen(false)}
                 onAdd={handleAddEvent}
             />
-        </Container>
+            </Container>
+            
+            {/* Debug-Info für extrahierte Farben in Development */}
+            {extractedColors && process.env.NODE_ENV === 'development' && (
+                <Box sx={{ 
+                    position: 'fixed', 
+                    bottom: 16, 
+                    right: 16, 
+                    p: 2, 
+                    bgcolor: 'background.paper', 
+                    borderRadius: 1, 
+                    boxShadow: 2,
+                    fontSize: '0.75rem',
+                    maxWidth: 200,
+                    zIndex: 1000
+                }}>
+                    <Typography variant="caption" display="block">
+                        Auto-Farben:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                        <Box sx={{ 
+                            width: 20, 
+                            height: 20, 
+                            bgcolor: extractedColors.primary, 
+                            borderRadius: 0.5,
+                            border: '1px solid #ccc'
+                        }} />
+                        <Box sx={{ 
+                            width: 20, 
+                            height: 20, 
+                            bgcolor: extractedColors.secondary, 
+                            borderRadius: 0.5,
+                            border: '1px solid #ccc'
+                        }} />
+                        <Box sx={{ 
+                            width: 20, 
+                            height: 20, 
+                            bgcolor: extractedColors.accent, 
+                            borderRadius: 0.5,
+                            border: '1px solid #ccc'
+                        }} />
+                    </Box>
+                </Box>
+            )}
+        </ThemeProvider>
     );
 }

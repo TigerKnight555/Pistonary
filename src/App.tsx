@@ -1,23 +1,21 @@
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import AppRouter from './router/AppRouter';
 import { AuthProvider } from './contexts/AuthContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { pistonaryTheme } from './theme/theme';
 import './index.css';
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline />
-        <AppRouter />
-      </ThemeProvider>
-    </AuthProvider>
+    <SettingsProvider>
+      <AuthProvider>
+        <ThemeProvider theme={pistonaryTheme}>
+          <CssBaseline />
+          <AppRouter />
+        </ThemeProvider>
+      </AuthProvider>
+    </SettingsProvider>
   );
 }
 

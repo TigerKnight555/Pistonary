@@ -30,7 +30,6 @@ import { jwtDecode } from 'jwt-decode';
 import type { Refueling } from '../database/entities/Refueling';
 import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
-import { chartColors } from '../theme/theme';
 import dayjs from 'dayjs';
 
 interface RefuelingChartProps {
@@ -147,26 +146,15 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
             };
         });
 
-    // Daten für die aktuelle Ansicht filtern
-    const getFilteredChartData = (): ChartDataPoint[] => {
-        if (dataView === 'consumption') {
-            // Bei Verbrauchsansicht nur Datenpunkte mit gültigem Verbrauchswert anzeigen
-            return chartData.filter(d => d.consumption !== undefined && d.consumption !== null);
-        }
-        // Für alle anderen Ansichten alle Datenpunkte anzeigen
-        return chartData;
-    };
-
-    const filteredChartData = getFilteredChartData();
-
     // Durchschnittswerte berechnen
     const getAverageValue = (view: DataView): number | null => {
         if (view === 'consumption') {
-            // Für Verbrauch: nur gefilterte Daten mit gültigem Verbrauchswert verwenden
-            if (filteredChartData.length === 0) return null;
+            // Nur Tankungen mit gültigem Verbrauchswert verwenden
+            const validConsumptionData = chartData.filter(d => d.consumption !== undefined && d.consumption !== null);
+            if (validConsumptionData.length === 0) return null;
             
-            const sum = filteredChartData.reduce((acc, d) => acc + (d.consumption || 0), 0);
-            return sum / filteredChartData.length;
+            const sum = validConsumptionData.reduce((acc, d) => acc + (d.consumption || 0), 0);
+            return sum / validConsumptionData.length;
         } else {
             // Für andere Ansichten alle Datenpunkte verwenden
             const values = chartData.map(d => d[view]).filter(v => v !== undefined && v !== null) as number[];
@@ -194,15 +182,15 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
     const getDataViewConfig = (view: DataView) => {
         switch (view) {
             case 'amount':
-                return { label: 'Menge', unit: 'L', color: chartColors.amount };
+                return { label: 'Menge', unit: 'L', color: '#2196f3' };
             case 'price':
-                return { label: 'Preis', unit: '€', color: chartColors.price };
+                return { label: 'Preis', unit: '€', color: '#4caf50' };
             case 'mileage':
-                return { label: 'Kilometerstand', unit: 'km', color: chartColors.mileage };
+                return { label: 'Kilometerstand', unit: 'km', color: '#ff9800' };
             case 'pricePerLiter':
-                return { label: 'Preis pro Liter', unit: '€/L', color: chartColors.pricePerLiter };
+                return { label: 'Preis pro Liter', unit: '€/L', color: '#e91e63' };
             case 'consumption':
-                return { label: 'Verbrauch', unit: 'L/100km', color: chartColors.consumption };
+                return { label: 'Verbrauch', unit: 'L/100km', color: '#9c27b0' };
             default:
                 return { label: 'Unbekannt', unit: '', color: '#666' };
         }
@@ -259,7 +247,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
 
     if (error) {
         return (
-            <Paper sx={{ p: 3, mb: 4 }}>
+            <Paper sx={{ p: 3 }}>
                 <Alert severity="error">
                     {error}
                 </Alert>
@@ -269,7 +257,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
 
     if (refuelings.length === 0) {
         return (
-            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
                 <Typography variant="h6" gutterBottom>
                     Keine Tankungen vorhanden
                 </Typography>
@@ -280,33 +268,23 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
         );
     }
 
-    if (filteredChartData.length === 0) {
+    if (chartData.length === 0) {
         return (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
                 <Alert severity="info">
-                    {dataView === 'consumption' 
-                        ? 'Nicht genügend Daten für Verbrauchsberechnung verfügbar. Mindestens 2 Tankungen erforderlich.'
-                        : 'Nicht genügend Daten für Statistiken verfügbar.'
-                    }
+                    Nicht genügend Daten für Statistiken verfügbar.
                 </Alert>
             </Paper>
         );
     }
 
     return (
-        <Paper sx={{ p: 3, mb: 4 }}>
+        <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
                 Tankstatistiken
             </Typography>
 
-            <Box sx={{ 
-                mb: 3, 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: 2, 
-                alignItems: 'flex-start',
-                justifyContent: 'space-between'
-            }}>
+            <Box sx={{ mb: 3, display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2, alignItems: 'center' }}>
                 <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Diagrammtyp:
@@ -337,13 +315,13 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                         exclusive
                         onChange={handleDataViewChange}
                         size="small"
-                        orientation="horizontal"
+                        orientation={isMobile ? 'vertical' : 'horizontal'}
                     >
                         <ToggleButton value="consumption">Verbrauch</ToggleButton>
+                        <ToggleButton value="amount">Menge</ToggleButton>
+                        <ToggleButton value="price">Preis</ToggleButton>
                         <ToggleButton value="pricePerLiter">€/L</ToggleButton>
                         <ToggleButton value="mileage">KM-Stand</ToggleButton>
-                        <ToggleButton value="price">Preis</ToggleButton>
-                        <ToggleButton value="amount">Menge</ToggleButton>
                     </ToggleButtonGroup>
                 </Box>
             </Box>
@@ -352,7 +330,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                 <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'line' ? (
                         <LineChart 
-                            data={filteredChartData} 
+                            data={chartData} 
                             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" />
@@ -387,20 +365,20 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                             {averageValue !== null && (
                                 <ReferenceLine 
                                     y={averageValue} 
-                                    stroke={chartColors.average}
+                                    stroke="#ff6b35"
                                     strokeDasharray="8 8"
                                     strokeWidth={2}
                                     label={{
                                         value: `Ø ${averageValue.toFixed(2)} ${config.unit}`,
                                         position: "top",
-                                        style: { fontSize: isMobile ? 10 : 12, fill: chartColors.average, fontWeight: "bold" }
+                                        style: { fontSize: isMobile ? 10 : 12, fill: "#ff6b35", fontWeight: "bold" }
                                     }}
                                 />
                             )}
                         </LineChart>
                     ) : (
                         <BarChart 
-                            data={filteredChartData} 
+                            data={chartData} 
                             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         >
                             <CartesianGrid strokeDasharray="3 3" />
@@ -430,13 +408,13 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                             {averageValue !== null && (
                                 <ReferenceLine 
                                     y={averageValue} 
-                                    stroke={chartColors.average}
+                                    stroke="#ff6b35"
                                     strokeDasharray="8 8"
                                     strokeWidth={2}
                                     label={{
                                         value: `Ø ${averageValue.toFixed(2)} ${config.unit}`,
                                         position: "top",
-                                        style: { fontSize: isMobile ? 10 : 12, fill: chartColors.average, fontWeight: "bold" }
+                                        style: { fontSize: isMobile ? 10 : 12, fill: "#ff6b35", fontWeight: "bold" }
                                     }}
                                 />
                             )}
@@ -448,9 +426,9 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                     📊 {refuelings.length} Tankungen • 
-                    {filteredChartData.length > 0 && (
+                    {chartData.length > 0 && (
                         <>
-                            {' '}Zeitraum: {dayjs(filteredChartData[0].date).format('DD.MM.YYYY')} - {dayjs(filteredChartData[filteredChartData.length - 1].date).format('DD.MM.YYYY')}
+                            {' '}Zeitraum: {dayjs(chartData[0].date).format('DD.MM.YYYY')} - {dayjs(chartData[chartData.length - 1].date).format('DD.MM.YYYY')}
                         </>
                     )}
                     {averageValue !== null && (
