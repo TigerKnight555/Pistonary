@@ -2,50 +2,57 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Refueling } from "./Refueling";
 import { User } from "./User";
 import { CarEvent } from "./CarEvent";
+import { CarMaintenanceInterval } from "./CarMaintenanceInterval";
 
 @Entity()
 export class Car {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column()
+    @Column({ type: 'text' })
     manufacturer!: string;
 
-    @Column()
+    @Column({ type: 'text' })
     model!: string;
 
-    @Column()
+    @Column({ type: 'integer' })
     year!: number;
 
-    @Column()
+    @Column({ type: 'integer' })
     power!: number; // PS/HP
 
-    @Column()
+    @Column({ type: 'text' })
     transmission!: string; // Automatik/Manuell
 
-    @Column()
+    @Column({ type: 'text' })
     licensePlate!: string;
 
-    @Column()
+    @Column({ type: 'text' })
     fuel!: string; // Benzin/Diesel/Elektro/Hybrid
 
-    @Column({ nullable: true })
+    @Column({ type: 'integer', nullable: true })
     userId!: number;
 
     @ManyToOne(() => User, user => user.cars)
     user!: User;
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     image?: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'integer', nullable: true })
     engineSize?: number; // Hubraum in ccm
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     notes?: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'integer', nullable: true })
     mileage?: number; // Kilometerstand
+
+    @Column({ type: 'text', nullable: true, default: 'PS' })
+    powerUnit?: string; // Einheit für Leistung (PS oder kW)
+
+    @Column({ type: 'text', nullable: true, default: 'km' })
+    mileageUnit?: string; // Einheit für Kilometerstand (km oder mi)
 
     @Column({ type: "simple-json", nullable: true })
     additionalInfo?: {
@@ -53,6 +60,27 @@ export class Car {
         color?: string;
         lastService?: string;
     };
+
+    // Wartungsintervalle - neue Relation
+    @OneToMany(() => CarMaintenanceInterval, interval => interval.car)
+    maintenanceIntervals!: CarMaintenanceInterval[];
+
+    // Wartungsintervalle (DEPRECATED - wird durch maintenanceIntervals ersetzt)
+    @Column({ type: 'boolean', default: true })
+    useStandardIntervals!: boolean;
+
+    // Neue Spalte: Soll das Auto individuelle Wartungsintervalle verwenden?
+    @Column('boolean', { default: false, name: 'useIndividualIntervals' })
+    useIndividualIntervals!: boolean;
+
+    @Column({ type: "simple-json", nullable: true })
+    maintenanceCategories?: {
+        id: number;
+        name: string;
+        timeInterval: number | null; // Monate
+        mileageInterval: number | null; // km
+        description?: string;
+    }[];
 
     @CreateDateColumn()
     created_at!: Date;

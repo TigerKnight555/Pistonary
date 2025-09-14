@@ -6,16 +6,16 @@ export class User {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column({ unique: true })
+    @Column({ type: 'text', unique: true })
     email!: string;
 
-    @Column()
+    @Column({ type: 'text' })
     name!: string;
 
-    @Column()
+    @Column({ type: 'text' })
     password!: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'integer', nullable: true })
     selectedCarId?: number;
 
     @OneToMany(() => Car, car => car.userId)

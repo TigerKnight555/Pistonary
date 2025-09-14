@@ -22,7 +22,7 @@ export class CarEvent {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column()
+    @Column({ type: 'text' })
     title!: string;
 
     @Column('text', { nullable: true })
@@ -47,7 +47,7 @@ export class CarEvent {
     notes?: string; // Zusätzliche Notizen
 
     // Beziehung zum Auto
-    @Column()
+    @Column({ type: 'integer' })
     carId!: number;
 
     @ManyToOne(() => Car, car => car.events)

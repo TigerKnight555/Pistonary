@@ -9,11 +9,13 @@ import AddRefuelingDialog from './AddRefuelingDialog';
 import RecentRefuelings from './RecentRefuelings';
 import RefuelingChart from './RefuelingChart';
 import AddEventDialog from './AddEventDialog';
+import MaintenanceStatusWidget from './MaintenanceStatusWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useSimpleDynamicTheme } from '../hooks/useSimpleDynamicTheme';
 import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
+import { formatPowerValue } from '../utils/powerConversion';
 
 export default function Dashboard() {
     const [cars, setCars] = useState<Car[]>([]);
@@ -281,7 +283,7 @@ export default function Dashboard() {
                                 <strong>Jahr:</strong> {selectedCar.year}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                <strong>Leistung:</strong> {selectedCar.power} PS
+                                <strong>Leistung:</strong> {formatPowerValue(selectedCar.power, 'PS')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                                 <strong>Kraftstoff:</strong> {selectedCar.fuel}
@@ -290,6 +292,11 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Wartungsstatus Widget */}
+            <Box sx={{ mb: 4 }}>
+                <MaintenanceStatusWidget />
+            </Box>
 
             {/* Action Buttons */}
             <Paper sx={{ 

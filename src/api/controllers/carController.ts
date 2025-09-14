@@ -44,7 +44,49 @@ export const carController = {
                 return res.status(404).json({ message: "Car not found" });
             }
             
-            return res.json(car);
+            // Workaround: Fetch useIndividualIntervals directly from database
+            const rawResult = await AppDataSource.query(
+                'SELECT useStandardIntervals, useIndividualIntervals FROM car WHERE id = ?', 
+                [id]
+            );
+            
+            const useIndividualIntervals = rawResult.length > 0 ? Boolean(rawResult[0].useIndividualIntervals) : false;
+            
+            console.log('Getting car by ID:', {
+                id: car.id,
+                useStandardIntervals: car.useStandardIntervals,
+                useIndividualIntervals: car.useIndividualIntervals,
+                rawUseIndividualIntervals: useIndividualIntervals,
+                manufacturer: car.manufacturer,
+                model: car.model,
+                allKeys: Object.keys(car),
+                hasUseIndividualIntervals: 'useIndividualIntervals' in car
+            });
+            
+            // Force the property to be included in JSON response
+            const result = {
+                id: car.id,
+                manufacturer: car.manufacturer,
+                model: car.model,
+                year: car.year,
+                power: car.power,
+                transmission: car.transmission,
+                licensePlate: car.licensePlate,
+                fuel: car.fuel,
+                userId: car.userId,
+                image: car.image,
+                engineSize: car.engineSize,
+                notes: car.notes,
+                mileage: car.mileage,
+                additionalInfo: car.additionalInfo,
+                useStandardIntervals: car.useStandardIntervals,
+                useIndividualIntervals: useIndividualIntervals, // Use the raw DB value
+                maintenanceCategories: car.maintenanceCategories,
+                created_at: car.created_at,
+                updated_at: car.updated_at
+            };
+            
+            return res.json(result);
         } catch (error) {
             console.error('Error in getCarById:', error);
             return res.status(500).json({ message: "Error fetching car", error });
@@ -89,8 +131,24 @@ export const carController = {
                 return res.status(404).json({ message: "Car not found" });
             }
             
+            console.log('Updating car with data:', {
+                id: id,
+                useStandardIntervals: req.body.useStandardIntervals,
+                useIndividualIntervals: req.body.useIndividualIntervals,
+                currentStandardValue: car.useStandardIntervals,
+                currentIndividualValue: car.useIndividualIntervals,
+                requestBody: Object.keys(req.body)
+            });
+            
             carRepository.merge(car, req.body);
             const result = await carRepository.save(car);
+            
+            console.log('Car updated successfully:', {
+                id: result.id,
+                useStandardIntervals: result.useStandardIntervals,
+                useIndividualIntervals: result.useIndividualIntervals
+            });
+            
             return res.json(result);
         } catch (error) {
             console.error('Error in updateCar:', error);

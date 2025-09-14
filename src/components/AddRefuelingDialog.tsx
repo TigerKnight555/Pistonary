@@ -9,10 +9,7 @@ import {
     Stack,
     InputAdornment,
     Typography,
-    Divider,
-    ToggleButton,
-    ToggleButtonGroup,
-    Box
+    Divider
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
@@ -20,6 +17,7 @@ import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import type { JWTPayload } from '../types/Auth';
 import dayjs from 'dayjs';
+import MileageInput from './MileageInput';
 
 interface AddRefuelingDialogProps {
     open: boolean;
@@ -37,14 +35,10 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
     });
     const [mileageUnit, setMileageUnit] = useState<'km' | 'mi'>('km');
 
-    // Umrechnungsfunktionen
-    const milesToKm = (miles: number): number => miles * 1.60934;
-    const kmToMiles = (km: number): number => km / 1.60934;
-
     // Kilometerstand in km umrechnen (falls nötig)
     const getMileageInKm = (): number => {
         const mileageValue = Number(formData.mileage);
-        return mileageUnit === 'mi' ? milesToKm(mileageValue) : mileageValue;
+        return mileageUnit === 'mi' ? mileageValue * 1.60934 : mileageValue;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -162,54 +156,16 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
 
                         <Divider />
 
-                        <Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                    Kilometerstand eingeben:
-                                </Typography>
-                                <ToggleButtonGroup
-                                    value={mileageUnit}
-                                    exclusive
-                                    onChange={(_, newUnit) => {
-                                        if (newUnit !== null) {
-                                            setMileageUnit(newUnit);
-                                            // Eingabefeld leeren bei Einheitenwechsel
-                                            setFormData(prev => ({ ...prev, mileage: '' }));
-                                        }
-                                    }}
-                                    size="small"
-                                >
-                                    <ToggleButton value="km">km</ToggleButton>
-                                    <ToggleButton value="mi">Meilen</ToggleButton>
-                                </ToggleButtonGroup>
-                            </Box>
-                            
-                            <TextField
-                                name="mileage"
-                                label={`Aktueller ${mileageUnit === 'km' ? 'Kilometerstand' : 'Meilenstand'}`}
-                                type="number"
-                                value={formData.mileage}
-                                onChange={handleChange}
-                                required
-                                fullWidth
-                                inputProps={{ min: 0 }}
-                                InputProps={{
-                                    endAdornment: <InputAdornment position="end">{mileageUnit}</InputAdornment>
-                                }}
-                            />
-                            
-                            {/* Umrechnungsanzeige */}
-                            {formData.mileage && mileageUnit === 'mi' && (
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    ≈ {milesToKm(Number(formData.mileage)).toFixed(1)} km
-                                </Typography>
-                            )}
-                            {formData.mileage && mileageUnit === 'km' && Number(formData.mileage) > 0 && (
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                    ≈ {kmToMiles(Number(formData.mileage)).toFixed(1)} Meilen
-                                </Typography>
-                            )}
-                        </Box>
+                        <MileageInput
+                            value={formData.mileage}
+                            unit={mileageUnit}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, mileage: value }))}
+                            onUnitChange={setMileageUnit}
+                            label="Kilometerstand eingeben:"
+                            required
+                            clearOnUnitChange={true}
+                            showConversion={true}
+                        />
                     </Stack>
                 </DialogContent>
                 

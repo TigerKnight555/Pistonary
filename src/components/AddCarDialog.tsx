@@ -2,6 +2,12 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, M
 import CloseIcon from '@mui/icons-material/Close';
 import { useState } from 'react';
 import type { Car } from '../database/entities/Car';
+import type { PowerUnitType } from '../utils/powerConversion';
+import { convertPowerValue } from '../utils/powerConversion';
+import type { DistanceUnitType } from '../utils/distanceConversion';
+import { convertDistanceValue } from '../utils/distanceConversion';
+import MileageInput from './MileageInput';
+import PowerInput from './PowerInput';
 
 interface AddCarDialogProps {
     open: boolean;
@@ -21,11 +27,13 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
         model: '',
         year: new Date().getFullYear(),
         power: '',
+        powerUnit: 'PS' as PowerUnitType,
         licensePlate: '',
         transmission: 'Manuell',
         fuel: 'Benzin',
         engineSize: '',
         mileage: '',
+        mileageUnit: 'km' as DistanceUnitType,
         notes: '',
         image: ''
     });
@@ -88,25 +96,46 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Konvertiere Leistung immer zu PS für die Datenbank
+        const powerInPs = formData.powerUnit === 'PS' 
+            ? Number(formData.power)
+            : convertPowerValue(Number(formData.power), 'kW', 'PS');
+            
+        // Konvertiere Kilometerstand immer zu km für die Datenbank
+        const mileageInKm = formData.mileageUnit === 'km' 
+            ? Number(formData.mileage)
+            : convertDistanceValue(Number(formData.mileage), 'mi', 'km');
+            
         onAdd({
             ...formData,
-            power: Number(formData.power),
+            power: powerInPs,
+            powerUnit: formData.powerUnit,
             year: Number(formData.year),
             engineSize: formData.engineSize ? Number(formData.engineSize) : undefined,
-            mileage: formData.mileage ? Number(formData.mileage) : undefined,
+            mileage: formData.mileage ? mileageInKm : undefined,
+            mileageUnit: formData.mileageUnit,
             notes: formData.notes || undefined,
             image: formData.image || undefined,
+            userId: 0, // wird vom Backend gesetzt
+            user: {} as any, // wird vom Backend gesetzt
+            maintenanceIntervals: [],
+            useStandardIntervals: true,
+            useIndividualIntervals: false,
+            maintenanceCategories: undefined,
+            events: []
         });
         setFormData({
             manufacturer: '',
             model: '',
             year: new Date().getFullYear(),
             power: '',
+            powerUnit: 'PS' as PowerUnitType,
             licensePlate: '',
             transmission: 'Manuell',
             fuel: 'Benzin',
             engineSize: '',
             mileage: '',
+            mileageUnit: 'km' as DistanceUnitType,
             notes: '',
             image: ''
         });
@@ -159,48 +188,8 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
                         value={formData.year}
                         onChange={handleChange}
                     />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        type="number"
-                        label="Leistung (PS)"
-                        name="power"
-                        value={formData.power}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        select
-                        label="Getriebe"
-                        name="transmission"
-                        value={formData.transmission}
-                        onChange={handleChange}
-                    >
-                        {transmissionOptions.map(option => (
-                            <MenuItem key={option} value={option}>
-                                {option}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        select
-                        label="Kraftstoff"
-                        name="fuel"
-                        value={formData.fuel}
-                        onChange={handleChange}
-                    >
-                        {fuelOptions.map(option => (
-                            <MenuItem key={option} value={option}>
-                                {option}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                    
+                    {/* Hubraum */}
                     <TextField
                         margin="normal"
                         fullWidth
@@ -210,6 +199,118 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
                         value={formData.engineSize}
                         onChange={handleChange}
                     />
+                    
+                    {/* Leistung und Kilometerstand */}
+                    <Box sx={{ display: 'flex', gap: 2, mt: 2, alignItems: 'center' }}>
+                        <Box sx={{ flex: 1 }}>
+                            <PowerInput
+                                value={formData.power}
+                                unit={formData.powerUnit}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, power: value }))}
+                                onUnitChange={(unit) => setFormData(prev => ({ ...prev, powerUnit: unit }))}
+                                required
+                                clearOnUnitChange={false}
+                                showConversion={true}
+                                textFieldProps={{
+                                    margin: "normal"
+                                }}
+                            />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                            <MileageInput
+                                value={formData.mileage}
+                                unit={formData.mileageUnit}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, mileage: value }))}
+                                onUnitChange={(unit) => setFormData(prev => ({ ...prev, mileageUnit: unit }))}
+                                clearOnUnitChange={false}
+                                showConversion={true}
+                                textFieldProps={{
+                                    margin: "normal"
+                                }}
+                            />
+                        </Box>
+                    </Box>
+                    
+                    
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            select
+                            label="Kraftstoff"
+                            name="fuel"
+                            value={formData.fuel}
+                            onChange={handleChange}
+                            SelectProps={{
+                                MenuProps: {
+                                    PaperProps: {
+                                        style: {
+                                            textAlign: 'left'
+                                        }
+                                    }
+                                }
+                            }}
+                            sx={{
+                                '& .MuiSelect-select': {
+                                    textAlign: 'left !important',
+                                    paddingLeft: '14px !important'
+                                },
+                                '& .MuiInputBase-input': {
+                                    textAlign: 'left !important'
+                                }
+                            }}
+                        >
+                            {fuelOptions.map(option => (
+                                <MenuItem 
+                                    key={option} 
+                                    value={option}
+                                    sx={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                                >
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            select
+                            label="Getriebe"
+                            name="transmission"
+                            value={formData.transmission}
+                            onChange={handleChange}
+                            SelectProps={{
+                                MenuProps: {
+                                    PaperProps: {
+                                        style: {
+                                            textAlign: 'left'
+                                        }
+                                    }
+                                }
+                            }}
+                            sx={{
+                                '& .MuiSelect-select': {
+                                    textAlign: 'left !important',
+                                    paddingLeft: '14px !important'
+                                },
+                                '& .MuiInputBase-input': {
+                                    textAlign: 'left !important'
+                                }
+                            }}
+                        >
+                            {transmissionOptions.map(option => (
+                                <MenuItem 
+                                    key={option} 
+                                    value={option}
+                                    sx={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                                >
+                                    {option}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </Box>
+                    
                     <Box sx={{ mt: 2, mb: 1 }}>
                         <input
                             accept="image/*"

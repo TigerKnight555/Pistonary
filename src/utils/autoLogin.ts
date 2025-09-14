@@ -1,11 +1,13 @@
 // Temporary auto-login for testing
 // This will automatically log in the test user when the page loads
 
+import { API_BASE_URL } from '../config/api';
+
 export const autoLoginTestUser = async () => {
   console.log('Auto-login: Attempting to log in test user...');
   
   try {
-    const response = await fetch('http://localhost:3001/api/auth/login', {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

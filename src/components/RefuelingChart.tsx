@@ -384,7 +384,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                                 connectNulls={false}
                                 name={config.label}
                             />
-                            {averageValue !== null && (
+                            {averageValue !== null && dataView !== 'mileage' && (
                                 <ReferenceLine 
                                     y={averageValue} 
                                     stroke={chartColors.average}
@@ -427,7 +427,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                                 fill={config.color}
                                 name={config.label}
                             />
-                            {averageValue !== null && (
+                            {averageValue !== null && dataView !== 'mileage' && (
                                 <ReferenceLine 
                                     y={averageValue} 
                                     stroke={chartColors.average}

@@ -5,10 +5,10 @@ export class Piston {
     @PrimaryGeneratedColumn()
     id!: number
 
-    @Column()
+    @Column({ type: 'text' })
     name: string
 
-    @Column()
+    @Column({ type: 'text' })
     manufacturer: string
 
     @Column("text")
@@ -20,16 +20,16 @@ export class Piston {
     @Column("float")
     stroke: number
 
-    @Column()
+    @Column({ type: 'float' })
     compression_height: number
 
-    @Column()
+    @Column({ type: 'float' })
     pin_diameter: number
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     material: string
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     coating: string
 
     @Column({ type: "json", nullable: true })

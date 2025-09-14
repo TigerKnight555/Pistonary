@@ -24,7 +24,7 @@ export class Refueling {
     @Column({ type: 'text', nullable: true })
     notes?: string;
 
-    @Column()
+    @Column({ type: 'integer' })
     carId!: number;
 
     @ManyToOne(() => Car, car => car.refuelings)
