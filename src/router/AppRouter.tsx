@@ -4,6 +4,7 @@ import Dashboard from '../components/Dashboard';
 import MaintenancePage from '../components/MaintenancePage';
 import CarListPage from '../components/CarListPage';
 import CarDetailPage from '../components/CarDetailPage';
+import ManagementPage from '../components/ManagementPage';
 import LoginPage from '../components/LoginPage';
 import ProtectedRoute from '../components/ProtectedRoute';
 
@@ -39,6 +40,10 @@ const router = createBrowserRouter([
       {
         path: 'maintenance',
         element: <MaintenancePage />
+      },
+      {
+        path: 'manage',
+        element: <ManagementPage />
       }
     ]
   }

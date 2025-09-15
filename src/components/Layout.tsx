@@ -22,6 +22,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BuildIcon from '@mui/icons-material/Build';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../contexts/AuthContext';
@@ -75,6 +76,14 @@ export default function Layout() {
               <BuildIcon />
             </ListItemIcon>
             <ListItemText primary="Wartung & Service" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => navigate('/manage')}>
+            <ListItemIcon>
+              <ManageAccountsIcon />
+            </ListItemIcon>
+            <ListItemText primary="Daten verwalten" />
           </ListItemButton>
         </ListItem>
       </List>

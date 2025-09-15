@@ -33,8 +33,11 @@ import { API_BASE_URL } from '../config/api';
 import { chartColors } from '../theme/theme';
 import dayjs from 'dayjs';
 
+export type TimeRange = 'all' | 'ytd' | 'lastYear' | 'lastMonth';
+
 interface RefuelingChartProps {
     refreshTrigger?: number;
+    timeRange?: TimeRange;
 }
 
 type ChartType = 'line' | 'bar';
@@ -51,7 +54,7 @@ interface ChartDataPoint {
     distanceDriven?: number; // km seit letzter Tankung
 }
 
-export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) {
+export default function RefuelingChart({ refreshTrigger, timeRange = 'lastMonth' }: RefuelingChartProps) {
     const [refuelings, setRefuelings] = useState<Refueling[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -102,6 +105,16 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
             const data = await response.json();
             console.log('Chart refuelings loaded:', data.length);
             setRefuelings(data);
+            
+            // Debug: Zeige Details über die geladenen Tankungen
+            if (data.length > 0) {
+                console.log('Refuelings details:', data.map((r: any) => ({
+                    date: r.date,
+                    mileage: r.mileage,
+                    amount: r.amount,
+                    isPartial: r.isPartialRefueling
+                })));
+            }
         } catch (err) {
             console.error('Error fetching refuelings for chart:', err);
             setError(err instanceof Error ? err.message : 'Fehler beim Laden der Tankungen');
@@ -114,24 +127,64 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
         fetchRefuelings();
     }, [token, refreshTrigger]);
 
+    // Funktion zum Filtern der Daten basierend auf dem Zeitraum
+    const filterByTimeRange = (refuelings: Refueling[], timeRange: TimeRange): Refueling[] => {
+        const now = dayjs();
+        let startDate: dayjs.Dayjs;
+
+        switch (timeRange) {
+            case 'lastMonth':
+                startDate = now.subtract(1, 'month');
+                break;
+            case 'ytd':
+                startDate = now.startOf('year');
+                break;
+            case 'lastYear':
+                startDate = now.subtract(1, 'year');
+                break;
+            case 'all':
+            default:
+                return refuelings; // Keine Filterung
+        }
+
+        return refuelings.filter(refueling => 
+            dayjs(refueling.date).isAfter(startDate)
+        );
+    };
+
     // Daten für Chart aufbereiten
-    const sortedRefuelings = refuelings
+    const filteredRefuelings = filterByTimeRange(refuelings, timeRange);
+    const sortedRefuelings = filteredRefuelings
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     const chartData: ChartDataPoint[] = sortedRefuelings
-        .map((refueling, index) => {
+        .map((refueling, index, array) => {
             let consumption: number | undefined = undefined;
             let distanceDriven: number | undefined = undefined;
 
-            // Verbrauch berechnen (nur wenn es eine vorherige Tankung gibt)
-            if (index > 0) {
-                const previousRefueling = sortedRefuelings[index - 1];
-                distanceDriven = refueling.mileage - previousRefueling.mileage;
+            // Verbrauch berechnen: Schaue zur NÄCHSTEN Tankung für die Verbrauchsberechnung
+            // Das bedeutet: Der Verbrauch wird für die aktuelle Tankung basierend auf der nächsten Tankung berechnet
+            if (index < array.length - 1) {
+                const nextRefueling = array[index + 1];
+                distanceDriven = nextRefueling.mileage - refueling.mileage;
                 
-                // Nur berechnen wenn die Strecke positiv ist und die vorherige Tankung eine Volltankung war
-                if (distanceDriven > 0 && !previousRefueling.isPartialRefueling) {
-                    // L/100km = (Liter / gefahrene km) * 100
-                    consumption = (refueling.amount / distanceDriven) * 100;
+                // Verbrauch berechnen wenn:
+                // 1. Die Strecke positiv ist (mehr als 0 km gefahren)
+                // 2. Die nächste Tankung mehr als 0 Liter hat
+                if (distanceDriven > 0 && nextRefueling.amount > 0) {
+                    // L/100km = (Liter der nächsten Tankung / gefahrene km zwischen den Tankungen) * 100
+                    consumption = (nextRefueling.amount / distanceDriven) * 100;
+                    
+                    // Debug: Log der Verbrauchsberechnung
+                    console.log(`Consumption calculated for ${dayjs(refueling.date).format('DD.MM.YY')}: ${consumption.toFixed(2)} L/100km (${nextRefueling.amount}L / ${distanceDriven}km)`);
+                    
+                    // Wenn die aktuelle Tankung eine Teiltankung war, markiere den Verbrauch als weniger zuverlässig
+                    // aber berechne ihn trotzdem für die Statistik
+                    if (refueling.isPartialRefueling) {
+                        console.log(`Note: Previous refueling was partial, consumption may be less accurate`);
+                    }
+                } else {
+                    console.log(`Consumption NOT calculated for ${dayjs(refueling.date).format('DD.MM.YY')}: distance=${distanceDriven}, nextAmount=${nextRefueling.amount}`);
                 }
             }
 
@@ -147,11 +200,17 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
             };
         });
 
+    // Debug: Zeige Chart-Daten
+    console.log('Chart data points:', chartData.length);
+    console.log('Chart consumption points:', chartData.filter(d => d.consumption !== undefined).length);
+
     // Daten für die aktuelle Ansicht filtern
     const getFilteredChartData = (): ChartDataPoint[] => {
         if (dataView === 'consumption') {
             // Bei Verbrauchsansicht nur Datenpunkte mit gültigem Verbrauchswert anzeigen
-            return chartData.filter(d => d.consumption !== undefined && d.consumption !== null);
+            const filtered = chartData.filter(d => d.consumption !== undefined && d.consumption !== null);
+            console.log('Filtered consumption data points:', filtered.length);
+            return filtered;
         }
         // Für alle anderen Ansichten alle Datenpunkte anzeigen
         return chartData;
@@ -227,7 +286,7 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                             </Typography>
                             {dataView === 'consumption' && data.distanceDriven && (
                                 <Typography variant="caption" color="text.secondary">
-                                    {data.distanceDriven.toFixed(0)} km seit letzter Tankung
+                                    {data.distanceDriven.toFixed(0)} km bis zur nächsten Tankung
                                 </Typography>
                             )}
                         </>
@@ -276,6 +335,23 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
                 <Typography variant="body2" color="text.secondary">
                     Füge erste Tankungen hinzu, um Statistiken zu sehen.
                 </Typography>
+            </Paper>
+        );
+    }
+
+    if (filteredRefuelings.length === 0) {
+        const timeRangeLabels = {
+            lastMonth: 'letzten Monat',
+            ytd: 'Jahr bis heute',
+            lastYear: 'letztes Jahr', 
+            all: 'gesamten Zeitraum'
+        };
+
+        return (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Alert severity="info">
+                    Keine Tankungen im {timeRangeLabels[timeRange]} gefunden.
+                </Alert>
             </Paper>
         );
     }
@@ -447,10 +523,10 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
 
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="body2" color="text.secondary">
-                    📊 {refuelings.length} Tankungen • 
+                    📊 {filteredRefuelings.length} Tankungen im gewählten Zeitraum
                     {filteredChartData.length > 0 && (
                         <>
-                            {' '}Zeitraum: {dayjs(filteredChartData[0].date).format('DD.MM.YYYY')} - {dayjs(filteredChartData[filteredChartData.length - 1].date).format('DD.MM.YYYY')}
+                            {' '}• Zeitraum: {dayjs(filteredChartData[0].date).format('DD.MM.YYYY')} - {dayjs(filteredChartData[filteredChartData.length - 1].date).format('DD.MM.YYYY')}
                         </>
                     )}
                     {averageValue !== null && (

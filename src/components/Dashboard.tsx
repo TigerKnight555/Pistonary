@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import EventIcon from '@mui/icons-material/Event';
@@ -17,6 +17,8 @@ import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
 import { formatPowerValue } from '../utils/powerConversion';
 
+export type TimeRange = 'all' | 'ytd' | 'lastYear' | 'lastMonth';
+
 export default function Dashboard() {
     const [cars, setCars] = useState<Car[]>([]);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
@@ -25,6 +27,7 @@ export default function Dashboard() {
     const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
+    const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('lastMonth');
     
     const { setSelectedCar: setSelectedCarInAuth } = useAuth();
     const fallbackTheme = useTheme();
@@ -340,7 +343,38 @@ export default function Dashboard() {
             </Paper>
 
             {/* Tankstatistiken Chart */}
-            <RefuelingChart refreshTrigger={refuelingUpdateTrigger} />
+            <Paper sx={{ p: 3, mb: 4 }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    mb: 3,
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: 2
+                }}>
+                    <Typography variant="h6" component="h2">
+                        Tankstatistiken
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <InputLabel id="time-range-label">Zeitraum</InputLabel>
+                        <Select
+                            labelId="time-range-label"
+                            value={selectedTimeRange}
+                            label="Zeitraum"
+                            onChange={(e) => setSelectedTimeRange(e.target.value as TimeRange)}
+                        >
+                            <MenuItem value="lastMonth">Letzter Monat</MenuItem>
+                            <MenuItem value="ytd">Year-to-Date</MenuItem>
+                            <MenuItem value="lastYear">Letztes Jahr</MenuItem>
+                            <MenuItem value="all">Gesamt</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Box>
+                <RefuelingChart 
+                    refreshTrigger={refuelingUpdateTrigger} 
+                    timeRange={selectedTimeRange}
+                />
+            </Paper>
 
             {/* Letzte Tankungen */}
             <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />

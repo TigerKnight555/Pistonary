@@ -9,8 +9,13 @@ import {
     Stack,
     InputAdornment,
     Typography,
-    Divider
+    Divider,
+    FormControlLabel,
+    Checkbox
 } from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
 import type { Car } from '../database/entities/Car';
@@ -31,9 +36,11 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
     const [formData, setFormData] = useState({
         liters: '',
         mileage: '',
-        totalPrice: ''
+        totalPrice: '',
+        isPartialRefueling: false
     });
     const [mileageUnit, setMileageUnit] = useState<'km' | 'mi'>('km');
+    const [selectedDate, setSelectedDate] = useState(dayjs());
 
     // Kilometerstand in km umrechnen (falls nötig)
     const getMileageInKm = (): number => {
@@ -72,13 +79,13 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
         }
         
         await onAdd({
-            date: dayjs().toISOString(), // Aktuelles Datum
+            date: selectedDate.toISOString(), // Ausgewähltes Datum
             carId: selectedCarId, // Auto-ID aus JWT Token
             car: currentCar, // Auto-Objekt für die Anzeige
             amount: Number(formData.liters),
             price: Number(formData.totalPrice),
             mileage: getMileageInKm(), // Kilometerstand in km (automatisch umgerechnet)
-            isPartialRefueling: false, // Standard: Volltankung
+            isPartialRefueling: formData.isPartialRefueling, // Teiltankung-Option
             notes: undefined
         });
 
@@ -86,17 +93,19 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
         setFormData({
             liters: '',
             mileage: '',
-            totalPrice: ''
+            totalPrice: '',
+            isPartialRefueling: false
         });
         setMileageUnit('km'); // Einheit zurücksetzen
+        setSelectedDate(dayjs()); // Datum zurücksetzen
         onClose();
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         }));
     };
 
@@ -119,6 +128,21 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
 
                 <DialogContent>
                     <Stack spacing={3}>
+                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                            <DatePicker
+                                label="Datum der Tankung"
+                                value={selectedDate}
+                                onChange={(newValue) => setSelectedDate(newValue || dayjs())}
+                                format="DD.MM.YYYY"
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        required: true
+                                    }
+                                }}
+                            />
+                        </LocalizationProvider>
+
                         <TextField
                             name="liters"
                             label="Getankte Liter"
@@ -153,6 +177,17 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
                                 Preis pro Liter: {pricePerLiter} €
                             </Typography>
                         )}
+
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    name="isPartialRefueling"
+                                    checked={formData.isPartialRefueling}
+                                    onChange={handleChange}
+                                />
+                            }
+                            label="Teiltankung (Tank nicht vollgemacht)"
+                        />
 
                         <Divider />
 
