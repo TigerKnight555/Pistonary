@@ -46,7 +46,7 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
   const [car, setCar] = useState<Car | null>(null);
   const [individualIntervals, setIndividualIntervals] = useState<MaintenanceIntervalView[]>([]);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const { token, selectedCarId } = useAuth();
 
   // Lade alle Daten
   const loadData = useCallback(async () => {
@@ -63,8 +63,12 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
         'Authorization': `Bearer ${token}`
       };
 
-      // Dummy carId - später aus Context holen
-      const carId = 1;
+      // Verwende die selectedCarId aus dem Auth-Context
+      const carId = selectedCarId;
+      
+      if (!carId) {
+        throw new Error('Kein Auto ausgewählt');
+      }
 
       // Lade Wartungen (korrekte carId verwenden)
       const maintenanceResponse = await fetch(`${API_BASE_URL}/maintenance/${carId}`, { headers });
@@ -196,9 +200,19 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
     return getDefaultIntervals(maintenanceType);
   }, [car, individualIntervals]);
 
-  // Berechne Wartungsstatus
+  // Berechne Wartungsstatus (basierend auf der neuesten Wartung pro Typ)
   const getMaintenanceStatus = useCallback((maintenanceType: MaintenanceType): MaintenanceStatus => {
-    const maintenance = maintenances.find(m => m.type === maintenanceType);
+    // Finde die neueste Wartung für diesen Typ
+    const maintenancesOfType = maintenances
+      .filter(m => m.type === maintenanceType)
+      .sort((a, b) => {
+        // Sortiere nach Datum (neueste zuerst)
+        const dateA = a.lastPerformed ? new Date(a.lastPerformed).getTime() : 0;
+        const dateB = b.lastPerformed ? new Date(b.lastPerformed).getTime() : 0;
+        return dateB - dateA;
+      });
+    
+    const maintenance = maintenancesOfType[0]; // Neueste Wartung
     
     if (!maintenance) {
       return 'not_recorded';

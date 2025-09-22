@@ -14,7 +14,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import type { ChipProps } from '@mui/material';
 import {
@@ -22,13 +24,16 @@ import {
   Settings as SettingsIcon,
   BuildCircle as MaintenanceIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ViewModule as CardViewIcon,
+  TableRows as TableViewIcon
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AddMaintenanceDialog from './AddMaintenanceDialog';
 import EditMaintenanceDialog from './EditMaintenanceDialog';
 import DeleteMaintenanceDialog from './DeleteMaintenanceDialog';
 import MaintenanceCategorySelectionDialog from './MaintenanceCategorySelectionDialog';
+import MaintenanceDataTable from './MaintenanceDataTable';
 import { MaintenanceType, MaintenanceTypeLabels, MaintenanceTypeIcons, getDefaultIntervals } from '../database/entities/Maintenance';
 import type { Maintenance } from '../database/entities/Maintenance';
 import type { Car } from '../types/Car';
@@ -54,7 +59,6 @@ const DistanceUnitLabels = {
 const convertKmToMiles = (km: number): number => Math.round(km / 1.60934);
 
 const MaintenancePage: React.FC = () => {
-  const { token } = useAuth();
   const [car, setCar] = useState<Car | null>(null);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [currentMileage, setCurrentMileage] = useState<number>(0);
@@ -67,9 +71,11 @@ const MaintenancePage: React.FC = () => {
   const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayUnit, setDisplayUnit] = useState<DistanceUnit>(DistanceUnits.KILOMETERS);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const { token, selectedCarId } = useAuth();
 
-  // Dummy carId für Test - später aus Context/Route holen
-  const carId = 1;
+  // Verwende die selectedCarId aus dem Auth-Context
+  const carId = selectedCarId;
 
   // Verwende den gemeinsamen Hook für Wartungslogik  
   const { 
@@ -351,6 +357,7 @@ const MaintenancePage: React.FC = () => {
   };
 
   // Gruppiere nur die tatsächlich erfassten Wartungen (nur die neueste pro Typ)
+  // UND nur für ausgewählte Kategorien
   const getRecordedMaintenanceGroups = () => {
     const allGroups = getMaintenanceGroups();
     const groupedMaintenances: { [key: string]: Maintenance[] } = {};
@@ -359,7 +366,13 @@ const MaintenancePage: React.FC = () => {
       const groupMaintenances: Maintenance[] = [];
       
       // Für jeden Wartungstyp nur die neueste Wartung hinzufügen
+      // ABER nur wenn die Kategorie auch ausgewählt ist
       (types as MaintenanceType[]).forEach(type => {
+        // Prüfe zuerst, ob diese Kategorie ausgewählt ist
+        if (!selectedCategories.includes(type)) {
+          return; // Springe zur nächsten Kategorie, wenn nicht ausgewählt
+        }
+        
         const maintenancesOfType = maintenances
           .filter(maintenance => maintenance.type === type)
           .sort((a, b) => {
@@ -528,22 +541,39 @@ const MaintenancePage: React.FC = () => {
           Wartungen für {car.manufacturer} {car.model}
         </Typography>
         
-        {/* Einheiten-Schalter */}
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Anzeige</InputLabel>
-          <Select
-            value={displayUnit}
-            label="Anzeige"
-            onChange={(e) => handleDisplayUnitChange(e.target.value as DistanceUnit)}
+        <Stack direction="row" spacing={2} alignItems="center">
+          {/* Ansichts-Umschalter */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setViewMode(newMode)}
+            size="small"
           >
-            <MenuItem value={DistanceUnits.KILOMETERS}>
-              {DistanceUnitLabels[DistanceUnits.KILOMETERS]}
-            </MenuItem>
-            <MenuItem value={DistanceUnits.MILES}>
-              {DistanceUnitLabels[DistanceUnits.MILES]}
-            </MenuItem>
-          </Select>
-        </FormControl>
+            <ToggleButton value="cards" aria-label="Kartenansicht">
+              <CardViewIcon />
+            </ToggleButton>
+            <ToggleButton value="table" aria-label="Tabellenansicht">
+              <TableViewIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* Einheiten-Schalter */}
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Anzeige</InputLabel>
+            <Select
+              value={displayUnit}
+              label="Anzeige"
+              onChange={(e) => handleDisplayUnitChange(e.target.value as DistanceUnit)}
+            >
+              <MenuItem value={DistanceUnits.KILOMETERS}>
+                {DistanceUnitLabels[DistanceUnits.KILOMETERS]}
+              </MenuItem>
+              <MenuItem value={DistanceUnits.MILES}>
+                {DistanceUnitLabels[DistanceUnits.MILES]}
+              </MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
       </Stack>
 
       {/* Debug Info für aktuellen Kilometerstand */}
@@ -605,299 +635,311 @@ const MaintenancePage: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* Status-Legende */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Status-Legende:
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 2,
-              alignItems: 'flex-start'
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip 
-                  label="Nicht erfasst" 
-                  variant="outlined" 
-                  size="small" 
-                  color="default"
-                />
-                <Typography variant="caption" color="text.secondary">
-                  Noch keine Wartung eingetragen
+          {/* Tabellenansicht */}
+          {viewMode === 'table' ? (
+            <MaintenanceDataTable
+              maintenances={maintenances}
+              displayUnit={displayUnit}
+              onEditMaintenance={handleEditMaintenance}
+              onDeleteMaintenance={handleDeleteMaintenance}
+            />
+          ) : (
+            <>
+              {/* Status-Legende */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                  Status-Legende:
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip 
-                  label="OK" 
-                  variant="filled" 
-                  size="small"
-                  color="success"
-                  sx={{
-                    backgroundColor: '#2e7d32',
-                    color: 'white',
-                    '&.MuiChip-filled': {
-                      backgroundColor: '#2e7d32',
-                    }
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  Wartung aktuell
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip 
-                  label="Bald fällig" 
-                  variant="filled" 
-                  size="small"
-                  color="warning"
-                  sx={{
-                    backgroundColor: '#ed6c02',
-                    color: 'white',
-                    '&.MuiChip-filled': {
-                      backgroundColor: '#ed6c02',
-                    }
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  &lt; 1 Monat oder &lt; 1.000 km
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip 
-                  label="Überfällig" 
-                  variant="filled" 
-                  size="small"
-                  color="error"
-                  sx={{
-                    backgroundColor: '#d32f2f',
-                    color: 'white',
-                    '&.MuiChip-filled': {
-                      backgroundColor: '#d32f2f',
-                    }
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  Wartung erforderlich
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-              Aktive Wartungskategorien ({selectedCategories.length}):
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1,
-              alignItems: 'flex-start'
-            }}>
-              {selectedCategories.map((type) => {
-                const status = getMaintenanceStatus(type);
-                const chipProps = getChipProps(status);
-                return (
-                  <Chip
-                    key={type}
-                    label={MaintenanceTypeLabels[type]}
-                    {...chipProps}
-                  />
-                );
-              })}
-            </Box>
-          </Box>
-
-          {/* Wartungen nach Kategorien gruppiert */}
-          {(() => {
-            const selectedCategoryGroups = getSelectedCategoryGroups();
-            const recordedMaintenanceGroups = getRecordedMaintenanceGroups();
-
-            return (
-              <Stack spacing={4}>
-                {Object.entries(selectedCategoryGroups).map(([groupName, groupCategories]) => (
-                  <Box key={groupName}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                      {groupName}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 2,
+                  alignItems: 'flex-start'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip 
+                      label="Nicht erfasst" 
+                      variant="outlined" 
+                      size="small" 
+                      color="default"
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      Noch keine Wartung eingetragen
                     </Typography>
-                    <Box sx={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                      gap: 2 
-                    }}>
-                      {/* Kategorie-Karten für noch nicht erfasste Wartungen */}
-                      {groupCategories.map((type) => {
-                        const hasRecordedMaintenance = recordedMaintenanceGroups[groupName]?.some(
-                          maintenance => maintenance.type === type
-                        );
-                        
-                        if (hasRecordedMaintenance) return null;
-                        
-                        return (
-                          <Card 
-                            key={type} 
-                            sx={{ 
-                              cursor: 'pointer',
-                              border: 2,
-                              borderColor: 'primary.light',
-                              borderStyle: 'dashed',
-                              bgcolor: 'background.paper',
-                              '&:hover': {
-                                boxShadow: 3,
-                                transform: 'translateY(-2px)',
-                                borderColor: 'primary.main',
-                                borderStyle: 'solid',
-                                bgcolor: 'action.hover'
-                              },
-                              transition: 'all 0.2s ease'
-                            }}
-                            onClick={() => handleCategoryCardClick(type)}
-                          >
-                            <CardContent sx={{ textAlign: 'center', py: 3, px: 2 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
-                                <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
-                                  {MaintenanceTypeIcons[type]}
-                                </Typography>
-                                <Typography variant="h6" component="h3" fontWeight="bold">
-                                  {MaintenanceTypeLabels[type]}
-                                </Typography>
-                              </Box>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                Noch nicht erfasst
-                              </Typography>
-                              <Typography variant="caption" color="primary.main" sx={{ fontStyle: 'italic' }}>
-                                Klicken zum Erfassen
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                      
-                      {/* Wartungs-Karten für bereits erfasste Wartungen */}
-                      {recordedMaintenanceGroups[groupName]?.map((maintenance) => {
-                        const remainingTime = getRemainingMaintenance(maintenance);
-                        const status = getMaintenanceStatus(maintenance.type);
-                        
-                        return (
-                          <Card key={maintenance.id} sx={{ '&:hover': { boxShadow: 3 } }}>
-                            <CardContent>
-                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
-                                      {MaintenanceTypeIcons[maintenance.type]}
-                                    </Typography>
-                                    <Typography variant="h6" component="h3">
-                                      {MaintenanceTypeLabels[maintenance.type]}
-                                    </Typography>
-                                  </Box>
-                                  
-                                  {/* Wartungsintervall Chip */}
-                                  <Chip
-                                    label={`Intervall: ${formatMaintenanceInterval(maintenance)}`}
-                                    variant="outlined"
-                                    size="small"
-                                    color="info"
-                                    sx={{ alignSelf: 'flex-start' }}
-                                  />
-                                </Box>
-                                <Stack direction="row">
-                                  <IconButton 
-                                    size="small" 
-                                    color="primary"
-                                    onClick={() => handleEditMaintenance(maintenance)}
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                  <IconButton 
-                                    size="small" 
-                                    color="error"
-                                    onClick={() => handleDeleteMaintenance(maintenance)}
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </Stack>
-                              </Stack>
-                              
-                              {/* Einfaches verbleibendes Zeit/Km Label */}
-                              {remainingTime && (
-                                <Box sx={{ 
-                                  backgroundColor: status === 'overdue' ? '#d32f2f' : 
-                                                  status === 'soon' ? '#ed6c02' : 
-                                                  status === 'good' ? '#2e7d32' : '#e0e0e0',
-                                  color: 'white', 
-                                  p: 2, 
-                                  borderRadius: 1, 
-                                  textAlign: 'center',
-                                  mb: 2
-                                }}>
-                                  <Typography variant="h6" fontWeight="bold">
-                                    {status === 'overdue' ? '🚨 ' : 
-                                     status === 'soon' ? '⚠️ ' : 
-                                     status === 'good' ? '✅ ' : '⏱️ '}
-                                    {remainingTime}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: 'white' }}>
-                                    {status === 'overdue' ? 'Wartung überfällig!' : 
-                                     status === 'soon' ? 'Wartung bald erforderlich' : 
-                                     status === 'good' ? 'Wartung in Ordnung' : 'bis zur nächsten Wartung'}
-                                  </Typography>
-                                </Box>
-                              )}
-                              
-                              <Divider sx={{ mb: 2 }} />
-                              
-                              {/* Kompakte Informationen */}
-                              <Stack spacing={1}>
-                                {maintenance.lastPerformed && (
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                      Zuletzt:
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {format(new Date(maintenance.lastPerformed), 'dd.MM.yyyy', { locale: de })}
-                                    </Typography>
-                                  </Box>
-                                )}
-                                
-                                {maintenance.lastMileage && (
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                      Bei {displayUnit === DistanceUnits.MILES ? 'mi:' : 'km:'}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      {displayUnit === DistanceUnits.MILES 
-                                        ? convertKmToMiles(maintenance.lastMileage).toLocaleString('de-DE')
-                                        : maintenance.lastMileage.toLocaleString('de-DE')
-                                      } {displayUnit === DistanceUnits.MILES ? 'mi' : 'km'}
-                                    </Typography>
-                                  </Box>
-                                )}
-                                
-                                {maintenance.cost && (
-                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                      Kosten:
-                                    </Typography>
-                                    <Typography variant="body2" color="primary">
-                                      {maintenance.cost.toLocaleString('de-DE', { 
-                                        style: 'currency', 
-                                        currency: 'EUR' 
-                                      })}
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </Stack>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </Box>
                   </Box>
-                ))}
-              </Stack>
-            );
-          })()}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip 
+                      label="OK" 
+                      variant="filled" 
+                      size="small"
+                      color="success"
+                      sx={{
+                        backgroundColor: '#2e7d32',
+                        color: 'white',
+                        '&.MuiChip-filled': {
+                          backgroundColor: '#2e7d32',
+                        }
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      Wartung aktuell
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip 
+                      label="Bald fällig" 
+                      variant="filled" 
+                      size="small"
+                      color="warning"
+                      sx={{
+                        backgroundColor: '#ed6c02',
+                        color: 'white',
+                        '&.MuiChip-filled': {
+                          backgroundColor: '#ed6c02',
+                        }
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      &lt; 1 Monat oder &lt; 1.000 km
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Chip 
+                      label="Überfällig" 
+                      variant="filled" 
+                      size="small"
+                      color="error"
+                      sx={{
+                        backgroundColor: '#d32f2f',
+                        color: 'white',
+                        '&.MuiChip-filled': {
+                          backgroundColor: '#d32f2f',
+                        }
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      Wartung erforderlich
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Aktive Wartungskategorien ({selectedCategories.length}):
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 1,
+                  alignItems: 'flex-start'
+                }}>
+                  {selectedCategories.map((type) => {
+                    const status = getMaintenanceStatus(type);
+                    const chipProps = getChipProps(status);
+                    return (
+                      <Chip
+                        key={type}
+                        label={MaintenanceTypeLabels[type]}
+                        {...chipProps}
+                      />
+                    );
+                  })}
+                </Box>
+              </Box>
+
+              {/* Wartungen nach Kategorien gruppiert - Kartenansicht */}
+              {(() => {
+                const selectedCategoryGroups = getSelectedCategoryGroups();
+                const recordedMaintenanceGroups = getRecordedMaintenanceGroups();
+
+                return (
+                  <Stack spacing={4}>
+                    {Object.entries(selectedCategoryGroups).map(([groupName, groupCategories]) => (
+                      <Box key={groupName}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                          {groupName}
+                        </Typography>
+                        <Box sx={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+                          gap: 2 
+                        }}>
+                          {/* Kategorie-Karten für noch nicht erfasste Wartungen */}
+                          {groupCategories.map((type) => {
+                            const hasRecordedMaintenance = recordedMaintenanceGroups[groupName]?.some(
+                              maintenance => maintenance.type === type
+                            );
+                            
+                            if (hasRecordedMaintenance) return null;
+                            
+                            return (
+                              <Card 
+                                key={type} 
+                                sx={{ 
+                                  cursor: 'pointer',
+                                  border: 2,
+                                  borderColor: 'primary.light',
+                                  borderStyle: 'dashed',
+                                  bgcolor: 'background.paper',
+                                  '&:hover': {
+                                    boxShadow: 3,
+                                    transform: 'translateY(-2px)',
+                                    borderColor: 'primary.main',
+                                    borderStyle: 'solid',
+                                    bgcolor: 'action.hover'
+                                  },
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => handleCategoryCardClick(type)}
+                              >
+                                <CardContent sx={{ textAlign: 'center', py: 3, px: 2 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
+                                    <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
+                                      {MaintenanceTypeIcons[type]}
+                                    </Typography>
+                                    <Typography variant="h6" component="h3" fontWeight="bold">
+                                      {MaintenanceTypeLabels[type]}
+                                    </Typography>
+                                  </Box>
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    Noch nicht erfasst
+                                  </Typography>
+                                  <Typography variant="caption" color="primary.main" sx={{ fontStyle: 'italic' }}>
+                                    Klicken zum Erfassen
+                                  </Typography>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                          
+                          {/* Wartungs-Karten für bereits erfasste Wartungen */}
+                          {recordedMaintenanceGroups[groupName]?.map((maintenance) => {
+                            const remainingTime = getRemainingMaintenance(maintenance);
+                            const status = getMaintenanceStatus(maintenance.type);
+                            
+                            return (
+                              <Card key={maintenance.id} sx={{ '&:hover': { boxShadow: 3 } }}>
+                                <CardContent>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
+                                          {MaintenanceTypeIcons[maintenance.type]}
+                                        </Typography>
+                                        <Typography variant="h6" component="h3">
+                                          {MaintenanceTypeLabels[maintenance.type]}
+                                        </Typography>
+                                      </Box>
+                                      
+                                      {/* Wartungsintervall Chip */}
+                                      <Chip
+                                        label={`Intervall: ${formatMaintenanceInterval(maintenance)}`}
+                                        variant="outlined"
+                                        size="small"
+                                        color="info"
+                                        sx={{ alignSelf: 'flex-start' }}
+                                      />
+                                    </Box>
+                                    <Stack direction="row">
+                                      <IconButton 
+                                        size="small" 
+                                        color="primary"
+                                        onClick={() => handleEditMaintenance(maintenance)}
+                                      >
+                                        <EditIcon />
+                                      </IconButton>
+                                      <IconButton 
+                                        size="small" 
+                                        color="error"
+                                        onClick={() => handleDeleteMaintenance(maintenance)}
+                                      >
+                                        <DeleteIcon />
+                                      </IconButton>
+                                    </Stack>
+                                  </Stack>
+                                  
+                                  {/* Einfaches verbleibendes Zeit/Km Label */}
+                                  {remainingTime && (
+                                    <Box sx={{ 
+                                      backgroundColor: status === 'overdue' ? '#d32f2f' : 
+                                                      status === 'soon' ? '#ed6c02' : 
+                                                      status === 'good' ? '#2e7d32' : '#e0e0e0',
+                                      color: 'white', 
+                                      p: 2, 
+                                      borderRadius: 1, 
+                                      textAlign: 'center',
+                                      mb: 2
+                                    }}>
+                                      <Typography variant="h6" fontWeight="bold">
+                                        {status === 'overdue' ? '🚨 ' : 
+                                         status === 'soon' ? '⚠️ ' : 
+                                         status === 'good' ? '✅ ' : '⏱️ '}
+                                        {remainingTime}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: 'white' }}>
+                                        {status === 'overdue' ? 'Wartung überfällig!' : 
+                                         status === 'soon' ? 'Wartung bald erforderlich' : 
+                                         status === 'good' ? 'Wartung in Ordnung' : 'bis zur nächsten Wartung'}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  
+                                  <Divider sx={{ mb: 2 }} />
+                                  
+                                  {/* Kompakte Informationen */}
+                                  <Stack spacing={1}>
+                                    {maintenance.lastPerformed && (
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                          Zuletzt:
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {format(new Date(maintenance.lastPerformed), 'dd.MM.yyyy', { locale: de })}
+                                        </Typography>
+                                      </Box>
+                                    )}
+                                    
+                                    {maintenance.lastMileage && (
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                          Bei {displayUnit === DistanceUnits.MILES ? 'mi:' : 'km:'}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {displayUnit === DistanceUnits.MILES 
+                                            ? convertKmToMiles(maintenance.lastMileage).toLocaleString('de-DE')
+                                            : maintenance.lastMileage.toLocaleString('de-DE')
+                                          } {displayUnit === DistanceUnits.MILES ? 'mi' : 'km'}
+                                        </Typography>
+                                      </Box>
+                                    )}
+                                    
+                                    {maintenance.cost && (
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                          Kosten:
+                                        </Typography>
+                                        <Typography variant="body2" color="primary">
+                                          {maintenance.cost.toLocaleString('de-DE', { 
+                                            style: 'currency', 
+                                            currency: 'EUR' 
+                                          })}
+                                        </Typography>
+                                      </Box>
+                                    )}
+                                  </Stack>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                );
+              })()}
+            </>
+          )}
         </>
       )}
 

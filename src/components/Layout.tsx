@@ -63,14 +63,6 @@ export default function Layout() {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/cars')}>
-            <ListItemIcon>
-              <DirectionsCarIcon />
-            </ListItemIcon>
-            <ListItemText primary="Fahrzeuge" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
           <ListItemButton onClick={() => navigate('/maintenance')}>
             <ListItemIcon>
               <BuildIcon />
@@ -84,6 +76,14 @@ export default function Layout() {
               <ManageAccountsIcon />
             </ListItemIcon>
             <ListItemText primary="Daten verwalten" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => navigate('/cars')}>
+            <ListItemIcon>
+              <DirectionsCarIcon />
+            </ListItemIcon>
+            <ListItemText primary="Garage" />
           </ListItemButton>
         </ListItem>
       </List>

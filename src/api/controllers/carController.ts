@@ -96,7 +96,11 @@ export const carController = {
     // Ein neues Auto erstellen
     createCar: async (req: Request, res: Response) => {
         try {
-            const userId = (req as any).user?.userId || 1; // Default to user 1 for backward compatibility
+            const userId = (req as any).user?.userId;
+            
+            if (!userId) {
+                return res.status(401).json({ message: 'Benutzer nicht authentifiziert' });
+            }
             
             console.log('Creating car with data:', {
                 manufacturer: req.body.manufacturer,

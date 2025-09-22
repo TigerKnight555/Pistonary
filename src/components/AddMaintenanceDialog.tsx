@@ -63,12 +63,15 @@ export default function AddMaintenanceDialog({
   open, 
   onClose, 
   onSaved, 
-  carId = 1,
+  carId,
   availableTypes,
   preselectedType
 }: AddMaintenanceDialogProps) {
-  const { token } = useAuth();
+  const { token, selectedCarId } = useAuth();
   const [car, setCar] = useState<Car | null>(null);
+  
+  // Verwende die übergebene carId oder die aus dem Auth-Context
+  const activeCarId = carId || selectedCarId;
   const [formData, setFormData] = useState({
     type: (preselectedType || '') as MaintenanceType | '',
     lastPerformed: new Date(),
@@ -84,14 +87,16 @@ export default function AddMaintenanceDialog({
 
   // Load car data when dialog opens
   useEffect(() => {
-    if (open && carId) {
+    if (open && activeCarId) {
       loadCar();
     }
-  }, [open, carId]);
+  }, [open, activeCarId]);
 
   const loadCar = async () => {
+    if (!activeCarId) return;
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/cars/${carId}`, {
+      const response = await fetch(`${API_BASE_URL}/cars/${activeCarId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -193,7 +198,7 @@ export default function AddMaintenanceDialog({
       }
 
       const maintenanceData: Omit<Maintenance, 'id' | 'createdAt' | 'updatedAt'> = {
-        carId,
+        carId: activeCarId!,
         type: formData.type as MaintenanceType,
         name: generatedName,
         lastPerformed: formData.lastPerformed,

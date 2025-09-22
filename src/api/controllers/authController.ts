@@ -150,5 +150,51 @@ export const authController = {
             console.error('Get profile error:', error);
             return res.status(500).json({ message: 'Failed to get profile', error });
         }
+    },
+
+    // Passwort ändern
+    changePassword: async (req: Request, res: Response) => {
+        try {
+            const { currentPassword, newPassword } = req.body;
+            const userId = (req as any).user.userId;
+            
+            if (!currentPassword || !newPassword) {
+                return res.status(400).json({ message: 'Aktuelles und neues Passwort sind erforderlich' });
+            }
+            
+            if (newPassword.length < 6) {
+                return res.status(400).json({ message: 'Neues Passwort muss mindestens 6 Zeichen lang sein' });
+            }
+            
+            const userRepository = AppDataSource.getRepository(User);
+            const user = await userRepository.findOneBy({ id: userId });
+            
+            if (!user) {
+                return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+            }
+            
+            // Verify current password
+            const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+            if (!isCurrentPasswordValid) {
+                return res.status(401).json({ message: 'Aktuelles Passwort ist falsch' });
+            }
+            
+            // Check if new password is different from current
+            const isSamePassword = await bcrypt.compare(newPassword, user.password);
+            if (isSamePassword) {
+                return res.status(400).json({ message: 'Neues Passwort muss sich vom aktuellen Passwort unterscheiden' });
+            }
+            
+            // Hash new password
+            const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+            
+            // Update password
+            await userRepository.update(userId, { password: hashedNewPassword });
+            
+            return res.json({ message: 'Passwort erfolgreich geändert' });
+        } catch (error) {
+            console.error('Change password error:', error);
+            return res.status(500).json({ message: 'Fehler beim Ändern des Passworts', error });
+        }
     }
 };

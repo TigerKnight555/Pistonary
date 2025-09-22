@@ -11,5 +11,6 @@ router.post('/login', authController.login);
 // Protected routes
 router.post('/select-car', authenticateToken, authController.selectCar);
 router.get('/profile', authenticateToken, authController.getProfile);
+router.post('/change-password', authenticateToken, authController.changePassword);
 
 export default router;

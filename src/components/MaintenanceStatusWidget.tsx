@@ -16,10 +16,12 @@ import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import { MaintenanceType, MaintenanceTypeLabels } from '../database/entities/Maintenance';
 import { useMaintenanceData, type MaintenanceStatus } from '../hooks/useMaintenanceData';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function MaintenanceStatusWidget() {
   const [expanded, setExpanded] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<MaintenanceType[]>([]);
+  const { selectedCarId } = useAuth();
   
   const { 
     loading, 
@@ -27,16 +29,17 @@ export default function MaintenanceStatusWidget() {
     maintenances
   } = useMaintenanceData();
 
-  // Debug: Lade die ausgewählten Kategorien aus localStorage (wie in MaintenancePage)
+  // Lade die ausgewählten Kategorien aus localStorage
   useEffect(() => {
-    const carId = 1; // Dummy carId - später aus Context holen
-    const saved = localStorage.getItem(`maintenance-categories-${carId}`);
+    if (!selectedCarId) return;
+    
+    const saved = localStorage.getItem(`maintenance-categories-${selectedCarId}`);
     if (saved) {
       const categories = JSON.parse(saved);
       console.log('MaintenanceStatusWidget - Kategorien geladen:', categories);
       setSelectedCategories(categories);
     }
-  }, []);
+  }, [selectedCarId]);
 
   // Debug: Zeige Wartungsdaten an
   useEffect(() => {

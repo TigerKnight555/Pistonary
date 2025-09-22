@@ -13,12 +13,15 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PaletteIcon from '@mui/icons-material/Palette';
+import LockIcon from '@mui/icons-material/Lock';
 import { useSettings } from '../contexts/SettingsContext';
 import ColorPickerDialog from './ColorPickerDialog';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 export default function SettingsMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const { isDarkMode, isAutoColorEnabled, manualColors, toggleDarkMode, toggleAutoColor } = useSettings();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -44,6 +47,15 @@ export default function SettingsMenu() {
 
   const handleColorPickerClose = () => {
     setIsColorPickerOpen(false);
+  };
+
+  const handleChangePasswordOpen = () => {
+    setIsChangePasswordOpen(true);
+    handleClose();
+  };
+
+  const handleChangePasswordClose = () => {
+    setIsChangePasswordOpen(false);
   };
 
   return (
@@ -157,6 +169,25 @@ export default function SettingsMenu() {
 
         <Divider />
 
+        {/* Password Change Option */}
+        <MenuItem onClick={handleChangePasswordOpen}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+              <LockIcon color="primary" />
+              <Box>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Passwort ändern
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  Sicherheitseinstellungen verwalten
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </MenuItem>
+
+        <Divider />
+
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="caption" color="text.secondary">
             Einstellungen werden automatisch gespeichert
@@ -168,6 +199,12 @@ export default function SettingsMenu() {
       <ColorPickerDialog 
         open={isColorPickerOpen}
         onClose={handleColorPickerClose}
+      />
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog 
+        open={isChangePasswordOpen}
+        onClose={handleChangePasswordClose}
       />
     </>
   );

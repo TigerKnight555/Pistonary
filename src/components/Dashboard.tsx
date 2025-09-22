@@ -10,6 +10,7 @@ import RecentRefuelings from './RecentRefuelings';
 import RefuelingChart from './RefuelingChart';
 import AddEventDialog from './AddEventDialog';
 import MaintenanceStatusWidget from './MaintenanceStatusWidget';
+import TotalCostsWidget from './TotalCostsWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useSimpleDynamicTheme } from '../hooks/useSimpleDynamicTheme';
 import type { Car } from '../database/entities/Car';
@@ -301,6 +302,11 @@ export default function Dashboard() {
                 <MaintenanceStatusWidget />
             </Box>
 
+            {/* Gesamtkosten Widget */}
+            <Box sx={{ mb: 4 }}>
+                <TotalCostsWidget />
+            </Box>
+
             {/* Action Buttons */}
             <Paper sx={{ 
                 p: 3, 
@@ -356,12 +362,24 @@ export default function Dashboard() {
                         Tankstatistiken
                     </Typography>
                     <FormControl size="small" sx={{ minWidth: 200 }}>
-                        <InputLabel id="time-range-label">Zeitraum</InputLabel>
+                        <InputLabel id="dashboard-time-range-label">Zeitraum</InputLabel>
                         <Select
-                            labelId="time-range-label"
+                            labelId="dashboard-time-range-label"
                             value={selectedTimeRange}
                             label="Zeitraum"
                             onChange={(e) => setSelectedTimeRange(e.target.value as TimeRange)}
+                            sx={{
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                                },
+                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(0, 0, 0, 0.87)',
+                                },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'primary.main',
+                                    borderWidth: 2,
+                                },
+                            }}
                         >
                             <MenuItem value="lastMonth">Letzter Monat</MenuItem>
                             <MenuItem value="ytd">Year-to-Date</MenuItem>

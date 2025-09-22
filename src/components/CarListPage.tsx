@@ -120,7 +120,7 @@ export default function CarListPage() {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Meine Fahrzeuge
+          Meine Garage
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {cars.length} {cars.length === 1 ? 'Fahrzeug' : 'Fahrzeuge'}
