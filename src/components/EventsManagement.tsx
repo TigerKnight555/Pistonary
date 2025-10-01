@@ -28,14 +28,12 @@ import {
     Select,
     MenuItem,
     TableSortLabel,
-    Grid,
     Collapse
 } from '@mui/material';
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
     Event as EventIcon,
-    Add as AddIcon,
     FilterList as FilterIcon,
     ExpandMore as ExpandMoreIcon,
     ExpandLess as ExpandLessIcon
@@ -229,7 +227,6 @@ export default function EventsManagement() {
         dateFrom: '',
         dateTo: '',
         title: '',
-        description: '',
         type: 'all' // all, accident, repair, other etc.
     });
     
@@ -409,11 +406,6 @@ export default function EventsManagement() {
                 return false;
             }
 
-            // Beschreibungsfilter
-            if (filters.description && !event.description?.toLowerCase().includes(filters.description.toLowerCase())) {
-                return false;
-            }
-
             // Typfilter
             if (filters.type !== 'all' && event.type !== filters.type) {
                 return false;
@@ -455,7 +447,8 @@ export default function EventsManagement() {
                 </Typography>
             </Box>
 
-            {/* Filter-Bereich */}
+            {/* Filter-Bereich - Temporär auskommentiert */}
+            {/*
             <Paper sx={{ mb: 2 }}>
                 <Box sx={{ p: 2 }}>
                     <Box 
@@ -480,40 +473,50 @@ export default function EventsManagement() {
                     
                     <Collapse in={filtersOpen}>
                         <Box sx={{ pt: 2 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6} md={3}>
+                            <Stack spacing={2}>
+                                <Box sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: 2
+                                }}>
                                     <TextField
                                         label="Von Datum"
                                         type="date"
                                         value={filters.dateFrom}
                                         onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                                        fullWidth
                                         size="small"
+                                        fullWidth
                                         InputLabelProps={{ shrink: true }}
                                     />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
                                     <TextField
                                         label="Bis Datum"
                                         type="date"
                                         value={filters.dateTo}
                                         onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                                        fullWidth
                                         size="small"
+                                        fullWidth
                                         InputLabelProps={{ shrink: true }}
                                     />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
+                                </Box>
+                                
+                                <Box sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: {
+                                        xs: '1fr',
+                                        sm: '1fr 1fr',
+                                        md: '1fr 1fr',
+                                        lg: '1fr 1fr'
+                                    },
+                                    gap: 2
+                                }}>
                                     <TextField
                                         label="Titel suchen"
                                         value={filters.title}
                                         onChange={(e) => handleFilterChange('title', e.target.value)}
-                                        fullWidth
                                         size="small"
+                                        fullWidth
                                     />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <FormControl fullWidth size="small">
+                                    <FormControl size="small" fullWidth>
                                         <InputLabel>Typ</InputLabel>
                                         <Select
                                             value={filters.type}
@@ -527,21 +530,13 @@ export default function EventsManagement() {
                                             <MenuItem value="other">Sonstiges</MenuItem>
                                         </Select>
                                     </FormControl>
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={6}>
-                                    <TextField
-                                        label="Beschreibung suchen"
-                                        value={filters.description}
-                                        onChange={(e) => handleFilterChange('description', e.target.value)}
-                                        fullWidth
-                                        size="small"
-                                    />
-                                </Grid>
-                            </Grid>
+                                </Box>
+                            </Stack>
                         </Box>
                     </Collapse>
                 </Box>
             </Paper>
+            */}
 
             {events.length === 0 ? (
                 <Alert severity="info">

@@ -6,6 +6,40 @@ import {
   DefaultMaintenanceIntervals 
 } from './entities/Maintenance';
 
+// Hilfsfunktion um Kategorie für Wartungstyp zu bestimmen
+const getCategoryForType = (type: string): string => {
+  const categoryMap: Record<string, string[]> = {
+    'Motoröl und Filter': [
+      'oil_change', 'air_filter', 'cabin_filter', 'fuel_filter'
+    ],
+    'Zündung': [
+      'spark_plugs', 'glow_plugs'
+    ],
+    'Riemen': [
+      'timing_belt', 'drive_belt'
+    ],
+    'Bremsen': [
+      'brake_pads', 'brake_discs', 'brake_fluid'
+    ],
+    'Flüssigkeiten': [
+      'coolant', 'automatic_transmission_fluid', 'manual_transmission_fluid', 'differential_oil', 'power_steering_fluid'
+    ],
+    'Reifen und Elektronik': [
+      'tire_change', 'battery', 'wiper_blades'
+    ],
+    'Behördliche Termine': [
+      'inspection'
+    ]
+  };
+  
+  for (const [category, types] of Object.entries(categoryMap)) {
+    if (types.includes(type)) {
+      return category;
+    }
+  }
+  return 'Sonstiges';
+};
+
 // Convert the comprehensive MaintenanceType enum to database format
 const defaultMaintenanceTypes = Object.values(MaintenanceTypeEnum).map((typeKey, index) => {
   const intervals = DefaultMaintenanceIntervals[typeKey];
@@ -38,6 +72,7 @@ const defaultMaintenanceTypes = Object.values(MaintenanceTypeEnum).map((typeKey,
   return {
     name: MaintenanceTypeLabels[typeKey],
     description: descriptions[typeKey] || `Wartung: ${MaintenanceTypeLabels[typeKey]}`,
+    category: getCategoryForType(typeKey),
     defaultTimeInterval: intervals.intervalMonths || null,
     defaultMileageInterval: intervals.intervalKilometers || null,
     sortOrder: index + 1
@@ -65,6 +100,7 @@ export const initializeMaintenanceTypes = async () => {
       const maintenanceType = new MaintenanceType();
       maintenanceType.name = typeData.name;
       maintenanceType.description = typeData.description;
+      maintenanceType.category = typeData.category;
       maintenanceType.defaultTimeInterval = typeData.defaultTimeInterval ?? undefined;
       maintenanceType.defaultMileageInterval = typeData.defaultMileageInterval ?? undefined;
       maintenanceType.isStandard = true;

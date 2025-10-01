@@ -6,7 +6,10 @@ import {
   Collapse,
   IconButton,
   Typography,
-  CircularProgress
+  CircularProgress,
+  Alert,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -22,6 +25,8 @@ export default function MaintenanceStatusWidget() {
   const [expanded, setExpanded] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<MaintenanceType[]>([]);
   const { selectedCarId } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const { 
     loading, 
@@ -102,8 +107,13 @@ export default function MaintenanceStatusWidget() {
 
   if (loading) {
     return (
-      <Paper sx={{ p: 3, minHeight: 80, textAlign: 'center' }}>
-        <CircularProgress size={24} />
+      <Paper sx={{ 
+        p: isMobile ? 2 : 3, 
+        minHeight: isMobile ? 60 : 80, 
+        textAlign: 'center',
+        width: '100%'
+      }}>
+        <CircularProgress size={isMobile ? 20 : 24} />
       </Paper>
     );
   }
@@ -111,48 +121,89 @@ export default function MaintenanceStatusWidget() {
   const overallDisplay = getOverallStatusDisplay();
 
   return (
-    <Paper sx={{ p: 3, mb: 4 }}>
+    <Paper sx={{ p: isMobile ? 2 : 3, width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
-          mb: expanded ? 2 : 0
+          mb: expanded ? (isMobile ? 1.5 : 2) : 0,
+          minHeight: 44 // Touch-friendly minimum
         }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ color: overallDisplay.color }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+          <Box sx={{ 
+            color: overallDisplay.color,
+            '& svg': { fontSize: isMobile ? '1.2rem' : '1.5rem' }
+          }}>
             {overallDisplay.icon}
           </Box>
-          <Typography variant="h6" fontWeight="bold" sx={{ color: overallDisplay.color }}>
+          <Typography 
+            variant={isMobile ? "subtitle1" : "h6"} 
+            fontWeight="bold" 
+            sx={{ 
+              color: overallDisplay.color,
+              fontSize: isMobile ? '1rem' : '1.25rem'
+            }}
+          >
             Wartungsstatus
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2" fontWeight="bold" sx={{ color: overallDisplay.color }}>
-            {overallDisplay.text}
-          </Typography>
-          <IconButton size="small" sx={{ color: overallDisplay.color }}>
-            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </IconButton>
-        </Box>
+        <IconButton 
+          size={isMobile ? "small" : "small"} 
+          sx={{ 
+            color: overallDisplay.color,
+            minWidth: 44,
+            minHeight: 44,
+            '& svg': { fontSize: isMobile ? '1.2rem' : '1.5rem' }
+          }}
+        >
+          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+        </IconButton>
       </Box>
 
         <Collapse in={expanded}>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          <Box sx={{ mt: isMobile ? 1.5 : 2 }}>
+            {/* Wartungsstatus Anzeige */}
+            <Box sx={{ mb: 2 }}>
+              <Typography 
+                variant={isMobile ? "body2" : "subtitle2"} 
+                fontWeight="bold" 
+                sx={{ 
+                  color: overallDisplay.color,
+                  fontSize: isMobile ? '0.875rem' : '1rem'
+                }}
+              >
+                {overallDisplay.text}
+              </Typography>
+            </Box>
+            
+            <Typography 
+              variant="caption" 
+              color="text.secondary" 
+              sx={{ 
+                mb: 1, 
+                display: 'block',
+                fontSize: isMobile ? '0.7rem' : '0.75rem'
+              }}
+            >
               Aktive Wartungskategorien ({selectedCategories.length}) - Wartungen geladen: {maintenances?.length || 0}
             </Typography>
             {selectedCategories.length === 0 ? (
               <Box sx={{ 
-                p: 2, 
+                p: isMobile ? 1.5 : 2, 
                 backgroundColor: 'rgba(25, 118, 210, 0.04)', 
                 borderRadius: 1,
                 border: '1px dashed #1976d2'
               }}>
-                <Typography variant="body2" color="primary" textAlign="center">
+                <Typography 
+                  variant={isMobile ? "caption" : "body2"} 
+                  color="primary" 
+                  textAlign="center"
+                  sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}
+                >
                   Gehe zur Wartungsseite, um Kategorien auszuwählen
                 </Typography>
               </Box>
@@ -161,7 +212,7 @@ export default function MaintenanceStatusWidget() {
                 <Box sx={{ 
                   display: 'flex', 
                   flexWrap: 'wrap', 
-                  gap: 1,
+                  gap: isMobile ? 0.5 : 1,
                   alignItems: 'flex-start'
                 }}>
                   {selectedCategories.map((type) => {
@@ -181,18 +232,31 @@ export default function MaintenanceStatusWidget() {
                       <Chip
                         key={type}
                         label={MaintenanceTypeLabels[type]}
-                        size="small"
+                        size={isMobile ? "small" : "small"}
                         style={chipStyle}
+                        sx={{
+                          fontSize: isMobile ? '0.7rem' : '0.75rem',
+                          height: isMobile ? 24 : 32,
+                          '& .MuiChip-label': {
+                            px: isMobile ? 1 : 1.5
+                          }
+                        }}
                       />
                     );
                   })}
                 </Box>
                 {maintenances?.length === 0 && (
-                  <Box sx={{ mt: 2, p: 1, backgroundColor: '#fff3cd', borderRadius: 1 }}>
-                    <Typography variant="caption" color="warning.main">
-                      ⚠️ Keine Wartungsdaten gefunden! Gehe zur Wartungsseite und füge Wartungen hinzu.
-                    </Typography>
-                  </Box>
+                  <Alert 
+                    severity="warning" 
+                    sx={{ 
+                      mt: isMobile ? 1.5 : 2,
+                      '& .MuiAlert-message': {
+                        fontSize: isMobile ? '0.7rem' : '0.75rem'
+                      }
+                    }}
+                  >
+                    Keine Wartungsdaten gefunden! Gehe zur Wartungsseite und füge Wartungen hinzu.
+                  </Alert>
                 )}
               </>
             )}

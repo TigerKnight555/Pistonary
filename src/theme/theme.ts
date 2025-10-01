@@ -143,6 +143,7 @@ export const pistonaryTheme = createTheme({
       },
     },
 
+
     // TextField Styles
     MuiTextField: {
       styleOverrides: {
@@ -164,18 +165,42 @@ export const pistonaryTheme = createTheme({
       },
     },
 
+    // DatePicker Input Styles (damit kein schwarzer Rand)
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          '&.MuiOutlinedInput-root': {
+            borderRadius: 8,
+            '& fieldset': {
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+            },
+            '&:hover fieldset': {
+              borderColor: brandColors.primary.light,
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: brandColors.primary.main,
+              borderWidth: 2,
+            },
+          },
+        },
+      },
+    },
+
     // Select and OutlinedInput Styles
     MuiOutlinedInput: {
       styleOverrides: {
+        notchedOutline: {
+          borderColor: 'rgba(255, 255, 255, 0.3)',
+        },
         root: {
           borderRadius: 8,
-          '& .MuiOutlinedInput-notchedOutline': {
+          '& .MuiOutlinedInput-notchedOutline, & .MuiInputBase-root .MuiOutlinedInput-notchedOutline': {
             borderColor: 'rgba(255, 255, 255, 0.3)',
           },
-          '&:hover .MuiOutlinedInput-notchedOutline': {
+          '&:hover .MuiOutlinedInput-notchedOutline, &:hover .MuiInputBase-root .MuiOutlinedInput-notchedOutline': {
             borderColor: brandColors.primary.light,
           },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline, &.Mui-focused .MuiInputBase-root .MuiOutlinedInput-notchedOutline': {
             borderColor: brandColors.primary.main,
             borderWidth: 2,
           },

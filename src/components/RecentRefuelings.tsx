@@ -10,11 +10,10 @@ import {
     Divider,
     Alert,
     CircularProgress,
-    IconButton
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
-import EditIcon from '@mui/icons-material/Edit';
-import EditRefuelingDialog from './EditRefuelingDialog';
 import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
 import type { Refueling } from '../database/entities/Refueling';
@@ -34,9 +33,9 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
     const [refuelings, setRefuelings] = useState<Refueling[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [selectedRefueling, setSelectedRefueling] = useState<Refueling | null>(null);
     const { token } = useAuth();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const fetchRecentRefuelings = async () => {
         if (!token) {
@@ -97,24 +96,6 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
         fetchRecentRefuelings();
     }, [token, refreshTrigger]); // Reagiert auf Token- und Trigger-Änderungen
 
-    // Edit Dialog Funktionen
-    const handleEditRefueling = (refueling: Refueling) => {
-        setSelectedRefueling(refueling);
-        setEditDialogOpen(true);
-    };
-
-    const handleEditDialogClose = () => {
-        setEditDialogOpen(false);
-        setSelectedRefueling(null);
-    };
-
-    const handleRefuelingUpdated = () => {
-        fetchRecentRefuelings(); // Liste neu laden
-        if (onRefuelingAdded) {
-            onRefuelingAdded(); // Dashboard Chart aktualisieren
-        }
-    };
-
     // Aktualisierung bei neuer Tankung
     useEffect(() => {
         if (onRefuelingAdded) {
@@ -140,9 +121,16 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
 
     if (loading) {
         return (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <CircularProgress size={40} />
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            <Paper sx={{ p: isMobile ? 2 : 3, textAlign: 'center', width: '100%' }}>
+                <CircularProgress size={isMobile ? 32 : 40} />
+                <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                        mt: 2,
+                        fontSize: isMobile ? '0.875rem' : '1rem'
+                    }}
+                >
                     Lade Tankungen...
                 </Typography>
             </Paper>
@@ -151,7 +139,7 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
 
     if (error) {
         return (
-            <Paper sx={{ p: 3 }}>
+            <Paper sx={{ p: isMobile ? 2 : 3, width: '100%' }}>
                 <Alert severity="error">{error}</Alert>
             </Paper>
         );
@@ -159,12 +147,25 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
 
     if (refuelings.length === 0) {
         return (
-            <Paper sx={{ p: 3, mb: 4, textAlign: 'center' }}>
-                <LocalGasStationIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Paper sx={{ p: isMobile ? 2 : 3, textAlign: 'center', width: '100%' }}>
+                <LocalGasStationIcon sx={{ 
+                    fontSize: isMobile ? 40 : 48, 
+                    color: 'text.secondary', 
+                    mb: 2 
+                }} />
+                <Typography 
+                    variant={isMobile ? "subtitle1" : "h6"} 
+                    color="text.secondary" 
+                    gutterBottom
+                    sx={{ fontSize: isMobile ? '1rem' : '1.25rem' }}
+                >
                     Noch keine Tankungen erfasst
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? '0.875rem' : '1rem' }}
+                >
                     Für dieses Fahrzeug wurden bisher keine Tankungen erfasst.
                     Füge deine erste Tankung hinzu, um den Tankverlauf zu sehen.
                 </Typography>
@@ -173,13 +174,32 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
     }
 
     return (
-        <Paper sx={{ p: 0, mb: 4 }}>
-            <Box sx={{ p: 3, pb: 1 }}>
-                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <LocalGasStationIcon color="primary" />
+        <Paper sx={{ p: 0, width: '100%' }}>
+            <Box sx={{ p: isMobile ? 1.5 : 2, pb: 0.5 }}>
+                <Typography 
+                    variant={isMobile ? "subtitle1" : "h6"} 
+                    sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: isMobile ? 0.5 : 1, 
+                        mb: isMobile ? 1 : 1.5,
+                        fontSize: isMobile ? '0.9rem' : '1.1rem'
+                    }}
+                >
+                    <LocalGasStationIcon 
+                        color="primary" 
+                        sx={{ fontSize: isMobile ? '1.1rem' : '1.3rem' }}
+                    />
                     Letzte Tankungen
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                        mb: 0.5,
+                        fontSize: isMobile ? '0.7rem' : '0.8rem'
+                    }}
+                >
                     Die letzten {Math.min(4, refuelings.length)} Tankungen
                 </Typography>
             </Box>
@@ -202,11 +222,35 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
                                 transition: 'opacity 0.3s ease-in-out'
                             }}
                         >
-                        <ListItem sx={{ px: 3, py: 0 }}>
+                        <ListItem sx={{ 
+                            px: 0, 
+                            py: isMobile ? 0.5 : 0.75,
+                            m: 0,
+                            minHeight: isMobile ? 48 : 'auto', // Touch-friendly
+                            '& .MuiListItem-root': {
+                                paddingLeft: 0,
+                                paddingRight: 0,
+                                margin: 0,
+                            }
+                        }}>
                             <ListItemText
+                                sx={{ mx: isMobile ? 1.5 : 2 }}
                                 primary={
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                                        <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center', 
+                                        mb: 0,
+                                        flexDirection: 'row',
+                                        gap: 0
+                                    }}>
+                                        <Typography 
+                                            variant={isMobile ? "body2" : "body1"} 
+                                            sx={{ 
+                                                fontWeight: 'medium',
+                                                fontSize: isMobile ? '0.8rem' : '0.9rem'
+                                            }}
+                                        >
                                             {formatDate(refueling.date)}
                                         </Typography>
                                         <Chip 
@@ -214,46 +258,48 @@ export default function RecentRefuelings({ onRefuelingAdded, refreshTrigger }: R
                                             color="primary" 
                                             size="small"
                                             variant="outlined"
+                                            sx={{
+                                                fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                                height: isMobile ? 20 : 24
+                                            }}
                                         />
                                     </Box>
                                 }
                                 secondary={
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                                    <Box sx={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        flexWrap: 'wrap', 
+                                        gap: 0.5,
+                                        mt: 0
+                                    }}>
                                         <Box>
-                                            <Typography variant="body2" color="text.secondary">
+                                            <Typography 
+                                                variant="body2" 
+                                                color="text.secondary"
+                                                sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }}
+                                            >
                                                 <strong>{refueling.amount} L</strong> • {formatPrice(getPricePerLiter(refueling.price, refueling.amount))}/L
                                             </Typography>
                                         </Box>
                                         <Box sx={{ textAlign: 'right' }}>
-                                            <Typography variant="body2" color="text.secondary">
+                                            <Typography 
+                                                variant="body2" 
+                                                color="text.secondary"
+                                                sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }}
+                                            >
                                                 {refueling.mileage.toLocaleString('de-DE')} km
                                             </Typography>
                                         </Box>
                                     </Box>
                                 }
                             />
-                            <IconButton 
-                                onClick={() => handleEditRefueling(refueling)}
-                                size="small"
-                                sx={{ ml: 1 }}
-                                title="Tankung bearbeiten"
-                            >
-                                <EditIcon fontSize="small" />
-                            </IconButton>
                         </ListItem>
                         {index < refuelings.slice(0, 4).length - 1 && <Divider />}
                     </Box>
                     );
                 })}
             </List>
-
-            {/* Edit Refueling Dialog */}
-            <EditRefuelingDialog
-                open={editDialogOpen}
-                onClose={handleEditDialogClose}
-                onUpdate={handleRefuelingUpdated}
-                refueling={selectedRefueling}
-            />
         </Paper>
     );
 }

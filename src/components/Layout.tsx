@@ -16,7 +16,10 @@ import {
   Divider,
   Button,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -34,26 +37,56 @@ const drawerWidth = 280;
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [bottomNavValue, setBottomNavValue] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { token, user, logout } = useAuth();
   
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Ändere auf 'sm' für bessere mobile Erkennung
+
+  // Update bottom navigation value based on current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/dashboard' || path === '/') setBottomNavValue(0);
+    else if (path === '/maintenance') setBottomNavValue(1);
+    else if (path === '/manage') setBottomNavValue(2);
+    else if (path === '/cars') setBottomNavValue(3);
+  }, [location.pathname]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleBottomNavChange = (event: React.SyntheticEvent, newValue: number) => {
+    setBottomNavValue(newValue);
+    const routes = ['/dashboard', '/maintenance', '/manage', '/cars'];
+    navigate(routes[newValue]);
+  };
+
   const drawer = (
-    <Box>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%',
+      overflow: 'hidden',
+      '&::-webkit-scrollbar': {
+        display: 'none'
+      },
+      scrollbarWidth: 'none'
+    }}>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
           Pistonary
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
+      <List sx={{ 
+        flexGrow: 1, 
+        overflow: 'hidden',
+        px: 1,
+        py: 1
+      }}>
         <ListItem disablePadding>
           <ListItemButton onClick={() => navigate('/dashboard')}>
             <ListItemIcon>
@@ -91,28 +124,25 @@ export default function Layout() {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      minHeight: '100vh',
+      width: '100%'
+    }}>
       <CssBaseline />
       
+      {/* Desktop AppBar */}
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
           backgroundColor: 'primary.main',
-          color: 'primary.contrastText'
+          color: 'primary.contrastText',
+          display: { xs: 'none', sm: 'block' }  // Verstecke auf Mobile (xs), zeige ab sm
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Pistonary
           </Typography>
@@ -144,53 +174,145 @@ export default function Layout() {
           </Box>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+
+      {/* Mobile AppBar - vereinfacht für Mobile */}
+      <AppBar
+        position="fixed"
+        sx={{
+          backgroundColor: 'primary.main',
+          color: 'primary.contrastText',
+          display: { xs: 'block', sm: 'none' }  // Nur auf Mobile sichtbar (xs)
+        }}
       >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
+        <Toolbar>
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Pistonary
+          </Typography>
+          
+          {/* Settings Menu für Mobile */}
+          <SettingsMenu />
+          
+          {/* Auth Buttons für Mobile */}
+          <Box sx={{ ml: 2 }}>
+            {user ? (
+              <IconButton
+                color="inherit"
+                onClick={logout}
+                size="small"
+              >
+                <LogoutIcon />
+              </IconButton>
+            ) : (
+              <IconButton
+                color="inherit"
+                onClick={() => setIsLoginDialogOpen(true)}
+                size="small"
+              >
+                <LoginIcon />
+              </IconButton>
+            )}
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Desktop Navigation Drawer - komplett ausgeblendet auf Mobile */}
+      {!isMobile && (
+        <Box
+          component="nav"
+          sx={{ width: drawerWidth, flexShrink: 0 }}
         >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
-              backgroundColor: 'background.paper'
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+          <Drawer
+            variant="permanent"
+            sx={{
+              '& .MuiDrawer-paper': { 
+                boxSizing: 'border-box', 
+                width: drawerWidth,
+                backgroundColor: 'background.paper',
+                height: '100vh',
+                overflow: 'hidden',
+                '&::-webkit-scrollbar': {
+                  display: 'none'
+                },
+                scrollbarWidth: 'none'
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+      )}
+
+      {/* Main Content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8,
+          p: { xs: 0, sm: 1, md: 2 }, // Minimal padding for maximum widget width
+          width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },  // 100% Breite auf Mobile
+          mt: { xs: 8, sm: 8 },  // AppBar height
+          mb: { xs: 8, sm: 0 },  // Bottom Navigation height on mobile
           position: 'relative',
           zIndex: 1,
-          minHeight: 'calc(100vh - 64px)'
+          minHeight: { xs: 'calc(100vh - 128px)', sm: 'calc(100vh - 64px)' },
+          overflow: 'auto'
         }}
       >
         <Outlet />
       </Box>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1300,
+            backgroundColor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            boxShadow: 3
+          }}
+        >
+          <BottomNavigation
+            value={bottomNavValue}
+            onChange={handleBottomNavChange}
+            showLabels
+            sx={{
+              height: 64,
+              width: '100%',
+              '& .MuiBottomNavigationAction-root': {
+                color: 'text.secondary',
+                fontSize: '0.75rem',
+                minWidth: 'auto',
+                '&.Mui-selected': {
+                  color: 'primary.main'
+                }
+              }
+            }}
+          >
+            <BottomNavigationAction 
+              label="Dashboard" 
+              icon={<DashboardIcon />} 
+            />
+            <BottomNavigationAction 
+              label="Wartung" 
+              icon={<BuildIcon />} 
+            />
+            <BottomNavigationAction 
+              label="Verwalten" 
+              icon={<ManageAccountsIcon />} 
+            />
+            <BottomNavigationAction 
+              label="Garage" 
+              icon={<DirectionsCarIcon />} 
+            />
+          </BottomNavigation>
+        </Box>
+      )}
+
       <LoginDialog
         open={isLoginDialogOpen}
         onClose={() => setIsLoginDialogOpen(false)}

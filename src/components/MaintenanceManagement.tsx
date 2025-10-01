@@ -11,7 +11,6 @@ import {
     Paper,
     IconButton,
     Button,
-    Chip,
     Alert,
     CircularProgress,
     Dialog,
@@ -27,18 +26,13 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    LinearProgress,
     TableSortLabel,
-    Grid,
     Collapse
 } from '@mui/material';
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
     Build as BuildIcon,
-    Add as AddIcon,
-    Warning as WarningIcon,
-    CheckCircle as CheckIcon,
     FilterList as FilterIcon,
     ExpandMore as ExpandMoreIcon,
     ExpandLess as ExpandLessIcon
@@ -73,6 +67,11 @@ interface Maintenance {
     isCompleted: boolean;
     createdAt: string;
     updatedAt: string;
+    maintenanceType?: {
+        id: number;
+        name: string;
+        category?: string;
+    };
 }
 
 interface EditMaintenanceDialogProps {
@@ -234,11 +233,8 @@ export default function MaintenanceManagement() {
         dateFrom: '',
         dateTo: '',
         name: '',
-        type: 'all', // all, oil_change, inspection, tire_change, brake_service, other
-        status: 'all', // all, completed, pending
         costMin: '',
-        costMax: '',
-        location: ''
+        costMax: ''
     });
     
     const { token } = useAuth();
@@ -419,29 +415,11 @@ export default function MaintenanceManagement() {
                 return false;
             }
 
-            // Typfilter
-            if (filters.type !== 'all' && maintenance.type !== filters.type) {
-                return false;
-            }
-
-            // Statusfilter
-            if (filters.status === 'completed' && !maintenance.isCompleted) {
-                return false;
-            }
-            if (filters.status === 'pending' && maintenance.isCompleted) {
-                return false;
-            }
-
             // Kostenfilter
             if (filters.costMin && (!maintenance.cost || maintenance.cost < parseFloat(filters.costMin))) {
                 return false;
             }
             if (filters.costMax && (!maintenance.cost || maintenance.cost > parseFloat(filters.costMax))) {
-                return false;
-            }
-
-            // Ortsfilter
-            if (filters.location && (!maintenance.location || !maintenance.location.toLowerCase().includes(filters.location.toLowerCase()))) {
                 return false;
             }
 
@@ -472,9 +450,6 @@ export default function MaintenanceManagement() {
         page * rowsPerPage + rowsPerPage
     );
 
-    const completedCount = maintenances.filter(m => m.isCompleted).length;
-    const pendingCount = maintenances.length - completedCount;
-
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -484,41 +459,14 @@ export default function MaintenanceManagement() {
                 </Typography>
             </Box>
 
-            {/* Status Übersicht */}
-            {maintenances.length > 0 && (
-                <Paper sx={{ p: 2, mb: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                        Status Übersicht
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-                        <Chip 
-                            icon={<CheckIcon />}
-                            label={`${completedCount} Abgeschlossen`} 
-                            color="success" 
-                            size="small" 
-                        />
-                        <Chip 
-                            icon={<WarningIcon />}
-                            label={`${pendingCount} Ausstehend`} 
-                            color="warning" 
-                            size="small" 
-                        />
-                    </Box>
-                    <LinearProgress 
-                        variant="determinate" 
-                        value={maintenances.length > 0 ? (completedCount / maintenances.length) * 100 : 0}
-                        sx={{ height: 8, borderRadius: 1 }}
-                    />
-                </Paper>
-            )}
-
             {maintenances.length === 0 ? (
                 <Alert severity="info">
                     Noch keine Wartungen vorhanden.
                 </Alert>
             ) : (
                 <>
-                    {/* Filter-Bereich */}
+                    {/* Filter-Bereich - Temporär auskommentiert */}
+                    {/*
                     <Paper sx={{ mb: 2 }}>
                         <Box sx={{ p: 2 }}>
                             <Box 
@@ -543,105 +491,72 @@ export default function MaintenanceManagement() {
                             
                             <Collapse in={filtersOpen}>
                                 <Box sx={{ pt: 2 }}>
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6} md={3}>
+                                    <Stack spacing={2}>
+                                        <Box sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: 2
+                                        }}>
                                             <TextField
                                                 label="Von Datum"
                                                 type="date"
                                                 value={filters.dateFrom}
                                                 onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                                                fullWidth
                                                 size="small"
+                                                fullWidth
                                                 InputLabelProps={{ shrink: true }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
                                             <TextField
                                                 label="Bis Datum"
                                                 type="date"
                                                 value={filters.dateTo}
                                                 onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                                                fullWidth
                                                 size="small"
+                                                fullWidth
                                                 InputLabelProps={{ shrink: true }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <TextField
-                                                label="Name suchen"
-                                                value={filters.name}
-                                                onChange={(e) => handleFilterChange('name', e.target.value)}
-                                                fullWidth
-                                                size="small"
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <FormControl fullWidth size="small">
-                                                <InputLabel>Typ</InputLabel>
-                                                <Select
-                                                    value={filters.type}
-                                                    label="Typ"
-                                                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                                                >
-                                                    <MenuItem value="all">Alle</MenuItem>
-                                                    <MenuItem value="oil_change">Ölwechsel</MenuItem>
-                                                    <MenuItem value="inspection">Inspektion</MenuItem>
-                                                    <MenuItem value="tire_change">Reifenwechsel</MenuItem>
-                                                    <MenuItem value="brake_service">Bremsenwartung</MenuItem>
-                                                    <MenuItem value="other">Sonstiges</MenuItem>
-                                                </Select>
-                                            </FormControl>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <FormControl fullWidth size="small">
-                                                <InputLabel>Status</InputLabel>
-                                                <Select
-                                                    value={filters.status}
-                                                    label="Status"
-                                                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                                                >
-                                                    <MenuItem value="all">Alle</MenuItem>
-                                                    <MenuItem value="completed">Abgeschlossen</MenuItem>
-                                                    <MenuItem value="pending">Ausstehend</MenuItem>
-                                                </Select>
-                                            </FormControl>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
+                                        </Box>
+                                        
+                                        <Box sx={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: 2
+                                        }}>
                                             <TextField
                                                 label="Min. Kosten"
                                                 type="number"
                                                 value={filters.costMin}
                                                 onChange={(e) => handleFilterChange('costMin', e.target.value)}
-                                                fullWidth
                                                 size="small"
+                                                fullWidth
                                                 inputProps={{ min: 0, step: 0.01 }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
                                             <TextField
                                                 label="Max. Kosten"
                                                 type="number"
                                                 value={filters.costMax}
                                                 onChange={(e) => handleFilterChange('costMax', e.target.value)}
-                                                fullWidth
                                                 size="small"
+                                                fullWidth
                                                 inputProps={{ min: 0, step: 0.01 }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
+                                        </Box>
+                                        
+                                        <Box>
                                             <TextField
-                                                label="Ort suchen"
-                                                value={filters.location}
-                                                onChange={(e) => handleFilterChange('location', e.target.value)}
-                                                fullWidth
+                                                label="Name suchen"
+                                                value={filters.name}
+                                                onChange={(e) => handleFilterChange('name', e.target.value)}
                                                 size="small"
+                                                fullWidth
                                             />
-                                        </Grid>
-                                    </Grid>
+                                        </Box>
+                                    </Stack>
                                 </Box>
                             </Collapse>
                         </Box>
                     </Paper>
+                    */}
 
                     <TableContainer component={Paper} sx={{ mb: 2 }}>
                         <Table size={isMobile ? "small" : "medium"}>
@@ -663,24 +578,6 @@ export default function MaintenanceManagement() {
                                             onClick={() => handleRequestSort('name')}
                                         >
                                             Name
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'type'}
-                                            direction={orderBy === 'type' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('type')}
-                                        >
-                                            Typ
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'isCompleted'}
-                                            direction={orderBy === 'isCompleted' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('isCompleted')}
-                                        >
-                                            Status
                                         </TableSortLabel>
                                     </TableCell>
                                     <TableCell align="right">
@@ -722,21 +619,6 @@ export default function MaintenanceManagement() {
                                                     }
                                                 </Typography>
                                             )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={getMaintenanceTypeLabel(maintenance.type)}
-                                                color={getMaintenanceTypeColor(maintenance.type)}
-                                                size="small"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                icon={maintenance.isCompleted ? <CheckIcon /> : <WarningIcon />}
-                                                label={maintenance.isCompleted ? 'Erledigt' : 'Ausstehend'}
-                                                color={maintenance.isCompleted ? 'success' : 'warning'}
-                                                size="small"
-                                            />
                                         </TableCell>
                                         <TableCell align="right">
                                             {maintenance.cost ? `${maintenance.cost.toFixed(2)} €` : '-'}

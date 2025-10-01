@@ -14,14 +14,17 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import PaletteIcon from '@mui/icons-material/Palette';
 import LockIcon from '@mui/icons-material/Lock';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useSettings } from '../contexts/SettingsContext';
 import ColorPickerDialog from './ColorPickerDialog';
 import ChangePasswordDialog from './ChangePasswordDialog';
+import ChartSettingsDialog from './ChartSettingsDialog';
 
 export default function SettingsMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isChartSettingsOpen, setIsChartSettingsOpen] = useState(false);
   const { isDarkMode, isAutoColorEnabled, manualColors, toggleDarkMode, toggleAutoColor } = useSettings();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -56,6 +59,15 @@ export default function SettingsMenu() {
 
   const handleChangePasswordClose = () => {
     setIsChangePasswordOpen(false);
+  };
+
+  const handleChartSettingsOpen = () => {
+    setIsChartSettingsOpen(true);
+    handleClose();
+  };
+
+  const handleChartSettingsClose = () => {
+    setIsChartSettingsOpen(false);
   };
 
   return (
@@ -169,6 +181,25 @@ export default function SettingsMenu() {
 
         <Divider />
 
+        {/* Chart Settings Option */}
+        <MenuItem onClick={handleChartSettingsOpen}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+              <BarChartIcon color="primary" />
+              <Box>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Statistik-Optionen
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  Verfügbare Datenansichten und Diagrammtypen konfigurieren
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </MenuItem>
+
+        <Divider />
+
         {/* Password Change Option */}
         <MenuItem onClick={handleChangePasswordOpen}>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -205,6 +236,12 @@ export default function SettingsMenu() {
       <ChangePasswordDialog 
         open={isChangePasswordOpen}
         onClose={handleChangePasswordClose}
+      />
+
+      {/* Chart Settings Dialog */}
+      <ChartSettingsDialog 
+        open={isChartSettingsOpen}
+        onClose={handleChartSettingsClose}
       />
     </>
   );

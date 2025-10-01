@@ -27,7 +27,6 @@ import {
     useTheme,
     useMediaQuery,
     TableSortLabel,
-    Grid,
     MenuItem,
     Select,
     FormControl,
@@ -37,7 +36,6 @@ import {
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Add as AddIcon,
     LocalGasStation as GasIcon,
     FilterList as FilterIcon,
     ExpandMore as ExpandMoreIcon,
@@ -234,8 +232,7 @@ export default function RefuelingsManagement() {
         priceMax: '',
         mileageMin: '',
         mileageMax: '',
-        type: 'all', // all, full, partial
-        notes: ''
+        type: 'all' // all, full, partial
     });
     
     const { token } = useAuth();
@@ -416,11 +413,6 @@ export default function RefuelingsManagement() {
                 return false;
             }
 
-            // Notizenfilter
-            if (filters.notes && !refueling.notes?.toLowerCase().includes(filters.notes.toLowerCase())) {
-                return false;
-            }
-
             return true;
         });
     };
@@ -457,7 +449,8 @@ export default function RefuelingsManagement() {
                 </Typography>
             </Box>
 
-            {/* Filter-Bereich */}
+            {/* Filter-Bereich - Temporär auskommentiert */}
+            {/*
             <Paper sx={{ mb: 2 }}>
                 <Box 
                     sx={{ 
@@ -479,75 +472,102 @@ export default function RefuelingsManagement() {
                 </Box>
                 <Collapse in={filtersOpen}>
                     <Box sx={{ p: 2, pt: 0 }}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6} md={3}>
+                        <Stack spacing={2}>
+                            <Box sx={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: 2
+                            }}>
                                 <TextField
                                     label="Von Datum"
                                     type="date"
                                     value={filters.dateFrom}
                                     onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     InputLabelProps={{ shrink: true }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
                                 <TextField
                                     label="Bis Datum"
                                     type="date"
                                     value={filters.dateTo}
                                     onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     InputLabelProps={{ shrink: true }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
+                            </Box>
+                            
+                            <Box sx={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: 2
+                            }}>
                                 <TextField
                                     label="Min. Liter"
                                     type="number"
                                     value={filters.amountMin}
                                     onChange={(e) => handleFilterChange('amountMin', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     inputProps={{ min: 0, step: 0.1 }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
                                 <TextField
                                     label="Max. Liter"
                                     type="number"
                                     value={filters.amountMax}
                                     onChange={(e) => handleFilterChange('amountMax', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     inputProps={{ min: 0, step: 0.1 }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
+                            </Box>
+                            
+                            <Box sx={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: 2
+                            }}>
                                 <TextField
                                     label="Min. Preis"
                                     type="number"
                                     value={filters.priceMin}
                                     onChange={(e) => handleFilterChange('priceMin', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     inputProps={{ min: 0, step: 0.01 }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
                                 <TextField
                                     label="Max. Preis"
                                     type="number"
                                     value={filters.priceMax}
                                     onChange={(e) => handleFilterChange('priceMax', e.target.value)}
-                                    fullWidth
                                     size="small"
+                                    fullWidth
                                     inputProps={{ min: 0, step: 0.01 }}
                                 />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                                <FormControl fullWidth size="small">
+                            </Box>
+                            
+                            <Box sx={{
+                                display: 'grid',
+                                gridTemplateColumns: {
+                                    xs: '1fr',
+                                    sm: '1fr 1fr',
+                                    md: '1fr 1fr',
+                                    lg: '1fr 1fr'
+                                },
+                                gap: 2
+                            }}>
+                                <TextField
+                                    label="Min. Kilometerstand"
+                                    type="number"
+                                    value={filters.mileageMin}
+                                    onChange={(e) => handleFilterChange('mileageMin', e.target.value)}
+                                    size="small"
+                                    fullWidth
+                                    inputProps={{ min: 0 }}
+                                />
+                                <FormControl size="small" fullWidth>
                                     <InputLabel>Typ</InputLabel>
                                     <Select
                                         value={filters.type}
@@ -559,20 +579,12 @@ export default function RefuelingsManagement() {
                                         <MenuItem value="partial">Teiltankung</MenuItem>
                                     </Select>
                                 </FormControl>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                    label="Notizen suchen"
-                                    value={filters.notes}
-                                    onChange={(e) => handleFilterChange('notes', e.target.value)}
-                                    fullWidth
-                                    size="small"
-                                />
-                            </Grid>
-                        </Grid>
+                            </Box>
+                        </Stack>
                     </Box>
                 </Collapse>
             </Paper>
+            */}
 
             {refuelings.length === 0 ? (
                 <Alert severity="info">

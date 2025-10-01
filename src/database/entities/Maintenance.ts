@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Car } from './Car';
+import { MaintenanceType as MaintenanceTypeEntity } from './MaintenanceType';
 
 @Entity('maintenance')
 export class Maintenance {
@@ -15,6 +16,13 @@ export class Maintenance {
 
   @Column({ type: 'text' })
   type: MaintenanceType;
+
+  @Column({ type: 'integer', nullable: true })
+  maintenanceTypeId?: number;
+
+  @ManyToOne(() => MaintenanceTypeEntity)
+  @JoinColumn({ name: 'maintenanceTypeId' })
+  maintenanceType?: MaintenanceTypeEntity;
 
   @Column({ type: 'text' })
   name: string;

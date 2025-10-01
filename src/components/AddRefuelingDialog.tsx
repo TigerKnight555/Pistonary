@@ -11,17 +11,20 @@ import {
     Typography,
     Divider,
     FormControlLabel,
-    Checkbox
+    Checkbox,
+    Box,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { de } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
 import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import type { JWTPayload } from '../types/Auth';
-import dayjs from 'dayjs';
 import MileageInput from './MileageInput';
 
 interface AddRefuelingDialogProps {
@@ -33,6 +36,8 @@ interface AddRefuelingDialogProps {
 
 export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }: AddRefuelingDialogProps) {
     const { token } = useAuth();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [formData, setFormData] = useState({
         liters: '',
         mileage: '',
@@ -40,7 +45,7 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
         isPartialRefueling: false
     });
     const [mileageUnit, setMileageUnit] = useState<'km' | 'mi'>('km');
-    const [selectedDate, setSelectedDate] = useState(dayjs());
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     // Kilometerstand in km umrechnen (falls nötig)
     const getMileageInKm = (): number => {
@@ -97,7 +102,7 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
             isPartialRefueling: false
         });
         setMileageUnit('km'); // Einheit zurücksetzen
-        setSelectedDate(dayjs()); // Datum zurücksetzen
+        setSelectedDate(new Date()); // Datum zurücksetzen
         onClose();
     };
 
@@ -117,7 +122,7 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
         <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
             <form onSubmit={handleSubmit}>
                 <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-                    Schnelle Tankung
+                    Tankung hinzufügen
                 </DialogTitle>
                 
                 {currentCar && (
@@ -128,49 +133,58 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
 
                 <DialogContent>
                     <Stack spacing={3}>
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
                             <DatePicker
-                                label="Datum der Tankung"
+                                label="Datum der Tankung *"
                                 value={selectedDate}
-                                onChange={(newValue) => setSelectedDate(newValue || dayjs())}
-                                format="DD.MM.YYYY"
+                                onChange={(newValue) => setSelectedDate(newValue ? new Date(newValue.toString()) : new Date())}
                                 slotProps={{
                                     textField: {
                                         fullWidth: true,
-                                        required: true
+                                        sx: {
+                                            '& .MuiOutlinedInput-notchedOutline': {
+                                                borderColor: 'rgba(255,255,255,0.3) !important'
+                                            }
+                                        }
                                     }
                                 }}
                             />
                         </LocalizationProvider>
 
-                        <TextField
-                            name="liters"
-                            label="Getankte Liter"
-                            type="number"
-                            value={formData.liters}
-                            onChange={handleChange}
-                            required
-                            fullWidth
-                            autoFocus
-                            inputProps={{ min: 0, step: 0.01 }}
-                            InputProps={{
-                                endAdornment: <InputAdornment position="end">L</InputAdornment>
-                            }}
-                        />
+                        <Box sx={{ 
+                            display: 'flex', 
+                            gap: 2,
+                            flexDirection: isMobile ? 'column' : 'row'
+                        }}>
+                            <TextField
+                                name="liters"
+                                label="Getankte Liter"
+                                type="number"
+                                value={formData.liters}
+                                onChange={handleChange}
+                                required
+                                fullWidth
+                                autoFocus
+                                inputProps={{ min: 0, step: 0.01 }}
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="end">L</InputAdornment>
+                                }}
+                            />
 
-                        <TextField
-                            name="totalPrice"
-                            label="Gesamtpreis"
-                            type="number"
-                            value={formData.totalPrice}
-                            onChange={handleChange}
-                            required
-                            fullWidth
-                            inputProps={{ min: 0, step: 0.01 }}
-                            InputProps={{
-                                endAdornment: <InputAdornment position="end">€</InputAdornment>
-                            }}
-                        />
+                            <TextField
+                                name="totalPrice"
+                                label="Gesamtpreis"
+                                type="number"
+                                value={formData.totalPrice}
+                                onChange={handleChange}
+                                required
+                                fullWidth
+                                inputProps={{ min: 0, step: 0.01 }}
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="end">€</InputAdornment>
+                                }}
+                            />
+                        </Box>
 
                         {pricePerLiter && (
                             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider, FormControl, InputLabel, Select, MenuItem, Grid } from '@mui/material';
+import { useSwipeable } from 'react-swipeable';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import EventIcon from '@mui/icons-material/Event';
@@ -18,7 +19,7 @@ import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
 import { formatPowerValue } from '../utils/powerConversion';
 
-export type TimeRange = 'all' | 'ytd' | 'lastYear' | 'lastMonth';
+
 
 export default function Dashboard() {
     const [cars, setCars] = useState<Car[]>([]);
@@ -28,7 +29,8 @@ export default function Dashboard() {
     const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
-    const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('lastMonth');
+
+    const [isTransitioning, setIsTransitioning] = useState(false);
     
     const { setSelectedCar: setSelectedCarInAuth } = useAuth();
     const fallbackTheme = useTheme();
@@ -40,9 +42,29 @@ export default function Dashboard() {
         baseTheme: fallbackTheme
     });
 
-    // Funktionen zum Auto-Wechseln mit JWT Token Update
+    // Swipe handlers für Auto-Navigation
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => {
+            if (cars.length > 1 && !isTransitioning) {
+                goToNextCar();
+            }
+        },
+        onSwipedRight: () => {
+            if (cars.length > 1 && !isTransitioning) {
+                goToPreviousCar();
+            }
+        },
+        preventScrollOnSwipe: true,
+        trackMouse: true, // Ermöglicht auch Mouse-Drag auf Desktop
+        delta: 30, // Reduzierte Mindest-Swipe-Distanz für bessere Responsivität
+        swipeDuration: 500, // Maximale Swipe-Dauer
+        touchEventOptions: { passive: false } // Bessere Touch-Kontrolle
+    });
+
+    // Funktionen zum Auto-Wechseln mit JWT Token Update und Animation
     const goToPreviousCar = async () => {
-        if (cars.length > 0) {
+        if (cars.length > 0 && !isTransitioning) {
+            setIsTransitioning(true);
             const newIndex = currentCarIndex > 0 ? currentCarIndex - 1 : cars.length - 1;
             const newCar = cars[newIndex];
             
@@ -55,11 +77,15 @@ export default function Dashboard() {
             } catch (error) {
                 console.error('Fehler beim Aktualisieren der Auto-Auswahl:', error);
             }
+            
+            // Animation beenden
+            setTimeout(() => setIsTransitioning(false), 300);
         }
     };
 
     const goToNextCar = async () => {
-        if (cars.length > 0) {
+        if (cars.length > 0 && !isTransitioning) {
+            setIsTransitioning(true);
             const newIndex = currentCarIndex < cars.length - 1 ? currentCarIndex + 1 : 0;
             const newCar = cars[newIndex];
             
@@ -72,6 +98,9 @@ export default function Dashboard() {
             } catch (error) {
                 console.error('Fehler beim Aktualisieren der Auto-Auswahl:', error);
             }
+            
+            // Animation beenden
+            setTimeout(() => setIsTransitioning(false), 300);
         }
     };
 
@@ -187,215 +216,267 @@ export default function Dashboard() {
 
     return (
         <ThemeProvider theme={dynamicTheme || fallbackTheme}>
-            <Container maxWidth="lg" sx={{ mt: 3, mb: 4 }}>
+            <Container 
+                maxWidth={false}
+                sx={{ 
+                    mt: isMobile ? 2 : 3, 
+                    mb: isMobile ? 2 : 4,
+                    px: { xs: 0.5, sm: 1, md: 2 }, // Minimal padding for maximum width usage
+                    width: '100%',
+                    maxWidth: '100vw' // Use full viewport width
+                }}
+            >
                 {/* Begrüßung mit Auto-Name und Navigation */}
                 <Paper sx={{ 
-                    p: 3, 
-                    mb: 4, 
-                    textAlign: 'center'
+                    p: isMobile ? 2 : 3, 
+                    mb: isMobile ? 2 : 4, 
+                    textAlign: 'center',
+                    mx: { xs: 0.5, sm: 0 } // Minimal margin on mobile
                 }}>
                 <Typography variant="h4" component="h1" gutterBottom>
                     Willkommen zurück!
                 </Typography>
                 {selectedCar && cars.length > 0 && (
                     <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: 2,
+                        textAlign: 'center',
                         mt: 2 
                     }}>
-                        {/* Zurück Button - nur anzeigen wenn mehr als 1 Auto */}
+                        <Typography variant="h5" color="primary" sx={{ fontWeight: 'medium' }}>
+                            {selectedCar.manufacturer} {selectedCar.model}
+                        </Typography>
                         {cars.length > 1 && (
-                            <IconButton 
-                                onClick={goToPreviousCar}
-                                sx={{ 
-                                    color: 'primary.main',
-                                    '&:hover': { backgroundColor: 'primary.light', color: 'white' }
-                                }}
-                                size="large"
-                            >
-                                <ArrowBackIosIcon />
-                            </IconButton>
-                        )}
-                        
-                        {/* Auto-Name */}
-                        <Box sx={{ textAlign: 'center', minWidth: 200 }}>
-                            <Typography variant="h5" color="primary" sx={{ fontWeight: 'medium' }}>
-                                {selectedCar.manufacturer} {selectedCar.model}
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                {currentCarIndex + 1} von {cars.length}
                             </Typography>
-                            {cars.length > 1 && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                    {currentCarIndex + 1} von {cars.length}
-                                </Typography>
-                            )}
-                        </Box>
-                        
-                        {/* Vor Button - nur anzeigen wenn mehr als 1 Auto */}
-                        {cars.length > 1 && (
-                            <IconButton 
-                                onClick={goToNextCar}
-                                sx={{ 
-                                    color: 'primary.main',
-                                    '&:hover': { backgroundColor: 'primary.light', color: 'white' }
-                                }}
-                                size="large"
-                            >
-                                <ArrowForwardIosIcon />
-                            </IconButton>
                         )}
                     </Box>
                 )}
             </Paper>
 
-            {/* Große Auto-Karte */}
-            {selectedCar && (
-                <Card sx={{ 
-                    mb: 4,
-                    boxShadow: 3
-                }}>
-                    {selectedCar.image ? (
-                        <CardMedia
-                            component="img"
-                            height={isMobile ? "200" : "300"}
-                            image={selectedCar.image}
-                            alt={`${selectedCar.manufacturer} ${selectedCar.model}`}
-                            sx={{ objectFit: 'cover' }}
-                        />
-                    ) : (
-                        <Box
-                            sx={{
-                                height: isMobile ? 200 : 300,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: 'grey.100'
-                            }}
-                        >
-                            <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400' }} />
+            {/* Car Carousel mit Swipe-Funktionalität */}
+            {cars.length > 0 && (
+                <Box sx={{ position: 'relative', mb: 4 }}>
+                    {/* Swipe-Indikator für mehrere Autos */}
+                    {cars.length > 1 && (
+                        <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            gap: 1, 
+                            mb: 2 
+                        }}>
+                            {cars.map((_, index) => (
+                                <Box
+                                    key={index}
+                                    sx={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: '50%',
+                                        backgroundColor: index === currentCarIndex ? 'primary.main' : 'grey.300',
+                                        transition: 'all 0.3s ease',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => {
+                                        if (!isTransitioning && index !== currentCarIndex) {
+                                            setIsTransitioning(true);
+                                            setCurrentCarIndex(index);
+                                            setSelectedCar(cars[index]);
+                                            setSelectedCarInAuth(cars[index].id);
+                                            setTimeout(() => setIsTransitioning(false), 300);
+                                        }
+                                    }}
+                                />
+                            ))}
                         </Box>
                     )}
-                    <CardContent>
-                        <Typography variant="h6" component="h2" gutterBottom>
-                            {selectedCar.manufacturer} {selectedCar.model}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Kennzeichen:</strong> {selectedCar.licensePlate}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Jahr:</strong> {selectedCar.year}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Leistung:</strong> {formatPowerValue(selectedCar.power, 'PS')}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Kraftstoff:</strong> {selectedCar.fuel}
-                            </Typography>
-                        </Box>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Wartungsstatus Widget */}
-            <Box sx={{ mb: 4 }}>
-                <MaintenanceStatusWidget />
-            </Box>
-
-            {/* Gesamtkosten Widget */}
-            <Box sx={{ mb: 4 }}>
-                <TotalCostsWidget />
-            </Box>
-
-            {/* Action Buttons */}
-            <Paper sx={{ 
-                p: 3, 
-                mb: 4,
-                textAlign: 'center'
-            }}>
-                <Box sx={{ 
-                    display: 'flex', 
-                    gap: 2, 
-                    flexDirection: isMobile ? 'column' : 'row',
-                    justifyContent: 'center'
-                }}>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        startIcon={<LocalGasStationIcon />}
-                        onClick={() => setIsAddRefuelingDialogOpen(true)}
+                    
+                    {/* Carousel Container */}
+                    <Box 
                         sx={{ 
-                            py: 2,
-                            fontSize: '1.1rem',
-                            flex: isMobile ? 1 : 'none'
+                            overflow: 'hidden',
+                            borderRadius: 2,
+                            position: 'relative',
+                            width: '100%'
                         }}
                     >
-                        Neue Tankung
-                    </Button>
-                    <Button
-                        variant="outlined"
-                        size="large"
-                        startIcon={<EventIcon />}
-                        onClick={() => setIsAddEventDialogOpen(true)}
-                        sx={{ 
-                            py: 2,
-                            fontSize: '1.1rem',
-                            flex: isMobile ? 1 : 'none'
-                        }}
-                    >
-                        Ereignis hinzufügen
-                    </Button>
-                </Box>
-            </Paper>
-
-            {/* Tankstatistiken Chart */}
-            <Paper sx={{ p: 3, mb: 4 }}>
-                <Box sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    mb: 3,
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: 2
-                }}>
-                    <Typography variant="h6" component="h2">
-                        Tankstatistiken
-                    </Typography>
-                    <FormControl size="small" sx={{ minWidth: 200 }}>
-                        <InputLabel id="dashboard-time-range-label">Zeitraum</InputLabel>
-                        <Select
-                            labelId="dashboard-time-range-label"
-                            value={selectedTimeRange}
-                            label="Zeitraum"
-                            onChange={(e) => setSelectedTimeRange(e.target.value as TimeRange)}
+                        <Box
+                            {...swipeHandlers}
                             sx={{
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                                display: 'flex',
+                                width: `${cars.length * 100}%`,
+                                transform: `translateX(-${(currentCarIndex * 100) / cars.length}%)`,
+                                transition: isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+                                cursor: cars.length > 1 ? 'grab' : 'default',
+                                '&:active': {
+                                    cursor: cars.length > 1 ? 'grabbing' : 'default',
                                 },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'rgba(0, 0, 0, 0.87)',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'primary.main',
-                                    borderWidth: 2,
-                                },
+                                touchAction: 'pan-y pinch-zoom' // Erlaubt vertikales Scrollen, aber horizontales Swipen
                             }}
                         >
-                            <MenuItem value="lastMonth">Letzter Monat</MenuItem>
-                            <MenuItem value="ytd">Year-to-Date</MenuItem>
-                            <MenuItem value="lastYear">Letztes Jahr</MenuItem>
-                            <MenuItem value="all">Gesamt</MenuItem>
-                        </Select>
-                    </FormControl>
+                            {cars.map((car, index) => (
+                                <Box
+                                    key={car.id}
+                                    sx={{
+                                        width: `${100 / cars.length}%`,
+                                        flexShrink: 0,
+                                        px: 1 // Padding statt Margin für bessere Kontrolle
+                                    }}
+                                >
+                                    <Card sx={{ 
+                                        boxShadow: 3,
+                                        userSelect: 'none',
+                                        height: '100%'
+                                    }}>
+                                        {car.image ? (
+                                            <CardMedia
+                                                component="img"
+                                                height={isMobile ? "200" : "300"}
+                                                image={car.image}
+                                                alt={`${car.manufacturer} ${car.model}`}
+                                                sx={{ 
+                                                    objectFit: 'cover',
+                                                    userSelect: 'none'
+                                                }}
+                                            />
+                                        ) : (
+                                            <Box
+                                                sx={{
+                                                    height: isMobile ? 200 : 300,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    backgroundColor: 'grey.100',
+                                                    userSelect: 'none'
+                                                }}
+                                            >
+                                                <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400' }} />
+                                            </Box>
+                                        )}
+                                        <CardContent sx={{ p: 2 }}>
+                                            <Typography variant="h6" component="h2" gutterBottom>
+                                                {car.manufacturer} {car.model}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                    <strong>Kennzeichen:</strong> {car.licensePlate}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                    <strong>Jahr:</strong> {car.year}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                    <strong>Leistung:</strong> {formatPowerValue(car.power, 'PS')}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                    <strong>Kraftstoff:</strong> {car.fuel}
+                                                </Typography>
+                                            </Box>
+                                        </CardContent>
+                                    </Card>
+                                </Box>
+                            ))}
+                        </Box>
+                    </Box>
+                    
+                    {/* Swipe-Hinweis für Mobile */}
+                    {cars.length > 1 && isMobile && (
+                        <Typography 
+                            variant="caption" 
+                            color="text.secondary" 
+                            sx={{ 
+                                display: 'block', 
+                                textAlign: 'center', 
+                                mt: 2, 
+                                opacity: 0.7 
+                            }}
+                        >
+                            ← Wischen um Auto zu wechseln →
+                        </Typography>
+                    )}
                 </Box>
-                <RefuelingChart 
-                    refreshTrigger={refuelingUpdateTrigger} 
-                    timeRange={selectedTimeRange}
-                />
-            </Paper>
+            )}
 
-            {/* Letzte Tankungen */}
-            <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
+            {/* Dashboard Widgets Grid */}
+            <Grid 
+                container 
+                spacing={isMobile ? 2 : 3} 
+                sx={{ 
+                    mb: 4,
+                    width: '100%',
+                    margin: 0, // Remove negative margins
+                    '& > .MuiGrid-item': {
+                        paddingLeft: isMobile ? '8px' : '12px',
+                        paddingTop: isMobile ? '8px' : '12px'
+                    }
+                }}
+            >
+                {/* Wartungsstatus Widget */}
+                <Grid item xs={12} sx={{ width: '100%' }}>
+                    <MaintenanceStatusWidget />
+                </Grid>
+
+                {/* Gesamtkosten Widget */}
+                <Grid item xs={12} sx={{ width: '100%' }}>
+                    <TotalCostsWidget />
+                </Grid>
+
+                {/* Action Buttons */}
+                <Grid item xs={12} sx={{ width: '100%' }}>
+                    <Paper sx={{ 
+                        p: isMobile ? 2 : 3,
+                        textAlign: 'center',
+                        width: '100%'
+                    }}>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            gap: 2, 
+                            flexDirection: isMobile ? 'column' : 'row',
+                            justifyContent: 'center'
+                        }}>
+                            <Button
+                                variant="contained"
+                                size={isMobile ? "medium" : "large"}
+                                startIcon={<LocalGasStationIcon />}
+                                onClick={() => setIsAddRefuelingDialogOpen(true)}
+                                sx={{ 
+                                    py: isMobile ? 1.5 : 2,
+                                    px: isMobile ? 2 : 3,
+                                    fontSize: isMobile ? '1rem' : '1.1rem',
+                                    flex: isMobile ? 1 : 'none',
+                                    minHeight: 44 // Touch-friendly minimum
+                                }}
+                            >
+                                Neue Tankung
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                size={isMobile ? "medium" : "large"}
+                                startIcon={<EventIcon />}
+                                onClick={() => setIsAddEventDialogOpen(true)}
+                                sx={{ 
+                                    py: isMobile ? 1.5 : 2,
+                                    px: isMobile ? 2 : 3,
+                                    fontSize: isMobile ? '1rem' : '1.1rem',
+                                    flex: isMobile ? 1 : 'none',
+                                    minHeight: 44 // Touch-friendly minimum
+                                }}
+                            >
+                                Ereignis hinzufügen
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Grid>
+
+                {/* Tankstatistiken Chart */}
+                <Grid item xs={12} sx={{ width: '100%' }}>
+                    <RefuelingChart 
+                        refreshTrigger={refuelingUpdateTrigger}
+                    />
+                </Grid>
+
+                {/* Letzte Tankungen */}
+                <Grid item xs={12} sx={{ width: '100%' }}>
+                    <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
+                </Grid>
+            </Grid>
 
             {/* Dialogs */}
             <AddRefuelingDialog 

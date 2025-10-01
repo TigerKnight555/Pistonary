@@ -17,6 +17,9 @@ export class MaintenanceType {
   @Column({ type: 'integer', nullable: true, name: 'default_mileage_interval' })
   defaultMileageInterval?: number; // in Kilometern
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  category?: string; // Kategorie wie "Motoröl und Filter", "Bremsen", etc.
+
   @Column({ type: 'boolean', default: true, name: 'is_standard' })
   isStandard!: boolean; // true für Standard-Kategorien, false für benutzerdefinierte
 

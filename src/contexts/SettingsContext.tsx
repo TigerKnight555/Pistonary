@@ -1,5 +1,14 @@
 import { useState, useEffect, createContext, useContext, type ReactNode } from 'react';
 
+// Chart-Konfiguration Types
+export type DataView = 'amount' | 'price' | 'mileage' | 'pricePerLiter' | 'consumption' | 'costPerKm';
+export type ChartType = 'line' | 'bar';
+
+export interface ChartSettings {
+  enabledDataViews: DataView[];
+  enabledChartTypes: ChartType[];
+}
+
 interface SettingsContextType {
   isDarkMode: boolean;
   isAutoColorEnabled: boolean;
@@ -8,11 +17,13 @@ interface SettingsContextType {
     secondary: string;
     accent: string;
   } | null;
+  chartSettings: ChartSettings;
   setDarkMode: (enabled: boolean) => void;
   setAutoColorEnabled: (enabled: boolean) => void;
   toggleDarkMode: () => void;
   toggleAutoColor: () => void;
   setManualColors: (colors: { primary: string; secondary: string; accent: string } | null) => void;
+  setChartSettings: (settings: ChartSettings) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -49,6 +60,14 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [chartSettings, setChartSettingsState] = useState<ChartSettings>(() => {
+    const saved = localStorage.getItem('pistonary_chartSettings');
+    return saved ? JSON.parse(saved) : {
+      enabledDataViews: ['consumption', 'costPerKm', 'pricePerLiter', 'mileage', 'price', 'amount'],
+      enabledChartTypes: ['line', 'bar']
+    };
+  });
+
   useEffect(() => {
     localStorage.setItem('pistonary_darkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
@@ -60,6 +79,10 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
   useEffect(() => {
     localStorage.setItem('pistonary_manualColors', JSON.stringify(manualColors));
   }, [manualColors]);
+
+  useEffect(() => {
+    localStorage.setItem('pistonary_chartSettings', JSON.stringify(chartSettings));
+  }, [chartSettings]);
 
   const setDarkMode = (enabled: boolean) => {
     setIsDarkMode(enabled);
@@ -81,15 +104,21 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
     setManualColorsState(colors);
   };
 
+  const setChartSettings = (settings: ChartSettings) => {
+    setChartSettingsState(settings);
+  };
+
   const value: SettingsContextType = {
     isDarkMode,
     isAutoColorEnabled,
     manualColors,
+    chartSettings,
     setDarkMode,
     setAutoColorEnabled,
     toggleDarkMode,
     toggleAutoColor,
     setManualColors,
+    setChartSettings,
   };
 
   return (
