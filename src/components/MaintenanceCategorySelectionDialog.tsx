@@ -11,7 +11,9 @@ import {
   Card,
   CardContent,
   Chip,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { CheckCircle as CheckIcon } from '@mui/icons-material';
 import {
@@ -38,6 +40,10 @@ export default function MaintenanceCategorySelectionDialog({
   car
 }: MaintenanceCategorySelectionDialogProps) {
   const [selectedCategories, setSelectedCategories] = useState<MaintenanceType[]>(currentCategories);
+  
+  // Theme und Mobile Detection
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Filterfunktion basierend auf Fahrzeugdaten
   const getRelevantMaintenanceTypes = (car: Car): MaintenanceType[] => {
@@ -123,13 +129,13 @@ export default function MaintenanceCategorySelectionDialog({
   };
 
   // Filtere Gruppen und Typen basierend auf relevantem Fahrzeug
-  const maintenanceGroups = Object.fromEntries(
+  const maintenanceGroups: Record<string, MaintenanceType[]> = Object.fromEntries(
     Object.entries(allMaintenanceGroups)
       .map(([groupName, types]) => [
         groupName, 
         types.filter(type => relevantTypes.includes(type))
       ])
-      .filter(([groupName, types]) => types.length > 0) // Entferne leere Gruppen
+      .filter(([, types]) => types.length > 0) // Entferne leere Gruppen
   );
 
   const handleCategoryToggle = (category: MaintenanceType) => {
@@ -166,27 +172,66 @@ export default function MaintenanceCategorySelectionDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
+      fullWidth
+      fullScreen={isMobile}
+      sx={{
+        '& .MuiDialog-paper': {
+          margin: isMobile ? 0 : 2,
+          maxHeight: isMobile ? '100vh' : 'calc(100vh - 64px)',
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        textAlign: 'center', 
+        pb: 1,
+        px: isMobile ? 2 : 3
+      }}>
         Wartungskategorien auswählen
       </DialogTitle>
       
-      <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', px: 3, pb: 2 }}>
+      <Typography 
+        variant="body2" 
+        color="text.secondary" 
+        sx={{ 
+          textAlign: 'center', 
+          px: isMobile ? 2 : 3, 
+          pb: 2 
+        }}
+      >
         Fahrzeugspezifische Wartungstypen für {car.manufacturer} {car.model} ({car.fuel}, {car.transmission})
       </Typography>
 
-      <DialogContent>
-        <Alert severity="info" sx={{ mb: 3 }}>
+      <DialogContent sx={{ px: isMobile ? 1 : 3 }}>
+        <Alert severity="info" sx={{ mb: 3, mx: isMobile ? 1 : 0 }}>
           Die angezeigten Kategorien sind speziell für Ihr Fahrzeug gefiltert. Elektrofahrzeuge benötigen z.B. keine Motoröl-Wartung.
         </Alert>
 
         {Object.entries(maintenanceGroups).map(([groupName, types]) => (
-          <Box key={groupName} sx={{ mb: 4 }}>
-            <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          <Box key={groupName} sx={{ mb: 4, mx: isMobile ? 1 : 0 }}>
+            <Typography 
+              variant="h6" 
+              gutterBottom 
+              sx={{ 
+                color: 'primary.main', 
+                fontWeight: 'bold',
+                px: isMobile ? 1 : 0
+              }}
+            >
               {groupName}
             </Typography>
             
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 2 }}>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile 
+                ? '1fr' 
+                : 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: isMobile ? 1 : 2,
+              px: isMobile ? 1 : 0
+            }}>
               {types.map(type => (
                 <Card 
                   key={type}
@@ -204,20 +249,39 @@ export default function MaintenanceCategorySelectionDialog({
                   }}
                   onClick={() => handleCategoryToggle(type)}
                 >
-                    <CardContent sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                    <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 1 : 2 }}>
                         <Box sx={{ flex: 1 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, justifyContent: 'space-between' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography component="span" sx={{ fontSize: '1.2rem' }}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1, 
+                            mb: 1, 
+                            justifyContent: 'space-between',
+                            flexWrap: isMobile ? 'wrap' : 'nowrap'
+                          }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                              <Typography component="span" sx={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
                                 {MaintenanceTypeIcons[type]}
                               </Typography>
-                              <Typography variant="subtitle2" fontWeight="bold">
+                              <Typography 
+                                variant={isMobile ? "body2" : "subtitle2"} 
+                                fontWeight="bold"
+                                sx={{ 
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: isMobile ? 'normal' : 'nowrap'
+                                }}
+                              >
                                 {MaintenanceTypeLabels[type]}
                               </Typography>
                             </Box>
                             {selectedCategories.includes(type) && (
-                              <CheckIcon sx={{ color: 'primary.main', fontSize: '1.2rem' }} />
+                              <CheckIcon sx={{ 
+                                color: 'primary.main', 
+                                fontSize: isMobile ? '1rem' : '1.2rem',
+                                flexShrink: 0
+                              }} />
                             )}
                           </Box>
                           
@@ -225,7 +289,14 @@ export default function MaintenanceCategorySelectionDialog({
                             label={formatInterval(type)}
                             size="small"
                             variant="outlined"
-                            sx={{ fontSize: '0.75rem' }}
+                            sx={{ 
+                              fontSize: isMobile ? '0.7rem' : '0.75rem',
+                              height: isMobile ? 'auto' : undefined,
+                              '& .MuiChip-label': {
+                                px: isMobile ? 1 : 1.5,
+                                py: isMobile ? 0.25 : 0.5
+                              }
+                            }}
                           />
                         </Box>
                       </Box>
@@ -237,14 +308,31 @@ export default function MaintenanceCategorySelectionDialog({
         ))}
       </DialogContent>
       
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} sx={{ flex: 1 }}>
+      <DialogActions sx={{ 
+        px: isMobile ? 2 : 3, 
+        pb: isMobile ? 2 : 3,
+        pt: isMobile ? 1 : 2,
+        gap: isMobile ? 1 : 0,
+        flexDirection: isMobile ? 'column' : 'row'
+      }}>
+        <Button 
+          onClick={onClose} 
+          sx={{ 
+            flex: isMobile ? 'none' : 1,
+            width: isMobile ? '100%' : 'auto',
+            order: isMobile ? 2 : 1
+          }}
+        >
           Abbrechen
         </Button>
         <Button 
           onClick={handleSave}
           variant="contained" 
-          sx={{ flex: 2 }}
+          sx={{ 
+            flex: isMobile ? 'none' : 2,
+            width: isMobile ? '100%' : 'auto',
+            order: isMobile ? 1 : 2
+          }}
         >
           {selectedCategories.length} Kategorien speichern
         </Button>

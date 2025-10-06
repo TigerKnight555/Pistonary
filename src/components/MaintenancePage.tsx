@@ -7,24 +7,21 @@ import {
   Button,
   Stack,
   Chip,
-  Container,
-  Grid,
   Divider,
-  IconButton,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   ToggleButton,
-  ToggleButtonGroup
+  ToggleButtonGroup,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import type { ChipProps } from '@mui/material';
 import {
   Add as AddIcon,
   Settings as SettingsIcon,
   BuildCircle as MaintenanceIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   ViewModule as CardViewIcon,
   TableRows as TableViewIcon
 } from '@mui/icons-material';
@@ -34,7 +31,8 @@ import EditMaintenanceDialog from './EditMaintenanceDialog';
 import DeleteMaintenanceDialog from './DeleteMaintenanceDialog';
 import MaintenanceCategorySelectionDialog from './MaintenanceCategorySelectionDialog';
 import MaintenanceDataTable from './MaintenanceDataTable';
-import { MaintenanceType, MaintenanceTypeLabels, MaintenanceTypeIcons, getDefaultIntervals } from '../database/entities/Maintenance';
+
+import { MaintenanceType, MaintenanceTypeLabels, MaintenanceTypeIcons } from '../database/entities/Maintenance';
 import type { Maintenance } from '../database/entities/Maintenance';
 import type { Car } from '../types/Car';
 import { API_BASE_URL } from '../config/api';
@@ -74,12 +72,15 @@ const MaintenancePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const { token, selectedCarId } = useAuth();
 
+  // Theme und Mobile Detection
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   // Verwende die selectedCarId aus dem Auth-Context
   const carId = selectedCarId;
 
   // Verwende den gemeinsamen Hook für Wartungslogik  
   const { 
-    getCurrentMileage: hookGetCurrentMileage,
     refreshData: refreshMaintenanceData,
     getMaintenanceStatus,
     getIntervalForMaintenanceType
@@ -528,34 +529,51 @@ const MaintenancePage: React.FC = () => {
 
   if (loading || !car) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography>Lade Wartungen...</Typography>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4">
+    <Box 
+      sx={{ 
+        py: isMobile ? 0.5 : 1.5,
+        px: isMobile ? 0.5 : 1.5,
+        width: isMobile ? '100%' : 'auto',
+        maxWidth: isMobile ? '100vw' : '900px',
+        minHeight: isMobile ? 'calc(100vh - 100px)' : 'auto',
+        margin: '0 auto'
+      }}
+    >
+      <Stack 
+        direction={isMobile ? "column" : "row"} 
+        justifyContent="space-between" 
+        alignItems={isMobile ? "flex-start" : "center"} 
+        spacing={isMobile ? 1 : 0}
+        sx={{ mb: isMobile ? 1 : 2 }}
+      >
+        <Typography variant={isMobile ? "h6" : "h5"} sx={{ fontWeight: 'bold' }}>
           Wartungen für {car.manufacturer} {car.model}
         </Typography>
         
         <Stack direction="row" spacing={2} alignItems="center">
-          {/* Ansichts-Umschalter */}
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newMode) => newMode && setViewMode(newMode)}
-            size="small"
-          >
-            <ToggleButton value="cards" aria-label="Kartenansicht">
-              <CardViewIcon />
-            </ToggleButton>
-            <ToggleButton value="table" aria-label="Tabellenansicht">
-              <TableViewIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
+          {/* Ansichts-Umschalter - nur auf Desktop */}
+          {!isMobile && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, newMode) => newMode && setViewMode(newMode)}
+              size="small"
+            >
+              <ToggleButton value="cards" aria-label="Kartenansicht">
+                <CardViewIcon />
+              </ToggleButton>
+              <ToggleButton value="table" aria-label="Tabellenansicht">
+                <TableViewIcon />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
 
           {/* Einheiten-Schalter */}
           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -576,41 +594,54 @@ const MaintenancePage: React.FC = () => {
         </Stack>
       </Stack>
 
-      {/* Debug Info für aktuellen Kilometerstand */}
-      {currentMileage > 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Aktueller Kilometerstand: {displayUnit === DistanceUnits.MILES 
-            ? convertKmToMiles(currentMileage).toLocaleString('de-DE')
-            : currentMileage.toLocaleString('de-DE')
-          } {displayUnit === DistanceUnits.MILES ? 'mi' : 'km'}
-        </Typography>
-      )}
-
-      {/* Gesamtkosten aller Wartungen */}
-      {maintenances.length > 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Gesamtkosten aller Wartungen: {getTotalMaintenanceCost().toLocaleString('de-DE', { 
-            style: 'currency', 
-            currency: 'EUR' 
-          })}
-        </Typography>
+      {/* Kompakte Info-Zeile */}
+      {(currentMileage > 0 || maintenances.length > 0) && (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 0.5 : 2,
+          mb: isMobile ? 1 : 1.5
+        }}>
+          {currentMileage > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              Aktueller Stand: {displayUnit === DistanceUnits.MILES 
+                ? convertKmToMiles(currentMileage).toLocaleString('de-DE')
+                : currentMileage.toLocaleString('de-DE')
+              } {displayUnit === DistanceUnits.MILES ? 'mi' : 'km'}
+            </Typography>
+          )}
+          {maintenances.length > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              Gesamtkosten: {getTotalMaintenanceCost().toLocaleString('de-DE', { 
+                style: 'currency', 
+                currency: 'EUR' 
+              })}
+            </Typography>
+          )}
+        </Box>
       )}
       
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+      <Stack 
+        direction="row" 
+        spacing={isMobile ? 1 : 2} 
+        sx={{ mb: isMobile ? 1.5 : 2 }}
+      >
         <Button
           variant="outlined"
           startIcon={<SettingsIcon />}
           onClick={() => setIsCategoryDialogOpen(true)}
+          size={isMobile ? "small" : "medium"}
         >
-          Kategorien verwalten
+          {isMobile ? "Kategorien" : "Kategorien verwalten"}
         </Button>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setIsAddDialogOpen(true)}
           disabled={selectedCategories.length === 0}
+          size={isMobile ? "small" : "medium"}
         >
-          Wartung erfassen
+          {isMobile ? "Erfassen" : "Wartung erfassen"}
         </Button>
       </Stack>
 
@@ -635,8 +666,8 @@ const MaintenancePage: React.FC = () => {
         </Card>
       ) : (
         <>
-          {/* Tabellenansicht */}
-          {viewMode === 'table' ? (
+          {/* Tabellenansicht - nur auf Desktop */}
+          {!isMobile && viewMode === 'table' ? (
             <MaintenanceDataTable
               maintenances={maintenances}
               displayUnit={displayUnit}
@@ -646,14 +677,14 @@ const MaintenancePage: React.FC = () => {
           ) : (
             <>
               {/* Status-Legende */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                   Status-Legende:
                 </Typography>
                 <Box sx={{ 
                   display: 'flex', 
                   flexWrap: 'wrap', 
-                  gap: 2,
+                  gap: isMobile ? 1 : 2,
                   alignItems: 'flex-start'
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -663,9 +694,11 @@ const MaintenancePage: React.FC = () => {
                       size="small" 
                       color="default"
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      Noch keine Wartung eingetragen
-                    </Typography>
+                    {!isMobile && (
+                      <Typography variant="caption" color="text.secondary">
+                        Noch keine Wartung eingetragen
+                      </Typography>
+                    )}
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Chip 
@@ -681,9 +714,11 @@ const MaintenancePage: React.FC = () => {
                         }
                       }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      Wartung aktuell
-                    </Typography>
+                    {!isMobile && (
+                      <Typography variant="caption" color="text.secondary">
+                        Wartung aktuell
+                      </Typography>
+                    )}
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Chip 
@@ -699,9 +734,11 @@ const MaintenancePage: React.FC = () => {
                         }
                       }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      &lt; 1 Monat oder &lt; 1.000 km
-                    </Typography>
+                    {!isMobile && (
+                      <Typography variant="caption" color="text.secondary">
+                        &lt; 1 Monat oder &lt; 1.000 km
+                      </Typography>
+                    )}
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Chip 
@@ -717,21 +754,23 @@ const MaintenancePage: React.FC = () => {
                         }
                       }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      Wartung erforderlich
-                    </Typography>
+                    {!isMobile && (
+                      <Typography variant="caption" color="text.secondary">
+                        Wartung erforderlich
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
               </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  Aktive Wartungskategorien ({selectedCategories.length}):
+              <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Aktive Kategorien ({selectedCategories.length}):
                 </Typography>
                 <Box sx={{ 
                   display: 'flex', 
                   flexWrap: 'wrap', 
-                  gap: 1,
+                  gap: 0.5,
                   alignItems: 'flex-start'
                 }}>
                   {selectedCategories.map((type) => {
@@ -754,16 +793,19 @@ const MaintenancePage: React.FC = () => {
                 const recordedMaintenanceGroups = getRecordedMaintenanceGroups();
 
                 return (
-                  <Stack spacing={4}>
-                    {Object.entries(selectedCategoryGroups).map(([groupName, groupCategories]) => (
-                      <Box key={groupName}>
-                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                          {groupName}
-                        </Typography>
+                  <Stack spacing={isMobile ? 2 : 3}>
+                      {Object.entries(selectedCategoryGroups).map(([groupName, groupCategories]) => (
+                        <Box key={groupName}>
+                          <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: isMobile ? 1 : 1.5, fontWeight: 600 }}>
+                            {groupName}
+                          </Typography>
                         <Box sx={{ 
                           display: 'grid', 
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                          gap: 2 
+                          gridTemplateColumns: isMobile 
+                            ? '1fr' 
+                            : 'repeat(auto-fill, minmax(280px, 1fr))', 
+                          gap: isMobile ? 1.5 : 2,
+                          maxWidth: '100%'
                         }}>
                           {/* Kategorie-Karten für noch nicht erfasste Wartungen */}
                           {groupCategories.map((type) => {
@@ -793,12 +835,12 @@ const MaintenancePage: React.FC = () => {
                                 }}
                                 onClick={() => handleCategoryCardClick(type)}
                               >
-                                <CardContent sx={{ textAlign: 'center', py: 3, px: 2 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
-                                    <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
+                                <CardContent sx={{ textAlign: 'center', py: isMobile ? 2 : 2.5, px: isMobile ? 1.5 : 2 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: isMobile ? 1.5 : 2, justifyContent: 'center' }}>
+                                    <Typography variant="body1" sx={{ fontSize: isMobile ? '1.3rem' : '1.5rem' }}>
                                       {MaintenanceTypeIcons[type]}
                                     </Typography>
-                                    <Typography variant="h6" component="h3" fontWeight="bold">
+                                    <Typography variant={isMobile ? "subtitle1" : "h6"} component="h3" fontWeight="bold">
                                       {MaintenanceTypeLabels[type]}
                                     </Typography>
                                   </Box>
@@ -820,14 +862,14 @@ const MaintenancePage: React.FC = () => {
                             
                             return (
                               <Card key={maintenance.id} sx={{ '&:hover': { boxShadow: 3 } }}>
-                                <CardContent>
-                                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="body1" sx={{ fontSize: '1.5rem' }}>
+                                <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: isMobile ? 1.5 : 2 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography variant="body1" sx={{ fontSize: isMobile ? '1.3rem' : '1.5rem' }}>
                                           {MaintenanceTypeIcons[maintenance.type]}
                                         </Typography>
-                                        <Typography variant="h6" component="h3">
+                                        <Typography variant={isMobile ? "subtitle1" : "h6"} component="h3">
                                           {MaintenanceTypeLabels[maintenance.type]}
                                         </Typography>
                                       </Box>
@@ -841,22 +883,6 @@ const MaintenancePage: React.FC = () => {
                                         sx={{ alignSelf: 'flex-start' }}
                                       />
                                     </Box>
-                                    <Stack direction="row">
-                                      <IconButton 
-                                        size="small" 
-                                        color="primary"
-                                        onClick={() => handleEditMaintenance(maintenance)}
-                                      >
-                                        <EditIcon />
-                                      </IconButton>
-                                      <IconButton 
-                                        size="small" 
-                                        color="error"
-                                        onClick={() => handleDeleteMaintenance(maintenance)}
-                                      >
-                                        <DeleteIcon />
-                                      </IconButton>
-                                    </Stack>
                                   </Stack>
                                   
                                   {/* Einfaches verbleibendes Zeit/Km Label */}
@@ -951,7 +977,7 @@ const MaintenancePage: React.FC = () => {
           setSelectedMaintenanceType(null);
         }}
         onSaved={handleMaintenanceAdded}
-        carId={carId}
+        carId={carId || undefined}
         availableTypes={selectedCategories}
         preselectedType={selectedMaintenanceType}
       />
@@ -983,7 +1009,7 @@ const MaintenancePage: React.FC = () => {
         onDeleted={handleMaintenanceDeleted}
         maintenance={selectedMaintenance}
       />
-    </Container>
+    </Box>
   );
 };
 

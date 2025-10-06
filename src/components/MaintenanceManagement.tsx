@@ -2,14 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
     Paper,
-    IconButton,
     Button,
     Alert,
     CircularProgress,
@@ -20,58 +13,37 @@ import {
     TextField,
     Stack,
     TablePagination,
-    useTheme,
-    useMediaQuery,
     FormControl,
     InputLabel,
     Select,
-    MenuItem,
-    TableSortLabel,
-    Collapse
+    MenuItem
 } from '@mui/material';
 import {
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-    Build as BuildIcon,
-    FilterList as FilterIcon,
-    ExpandMore as ExpandMoreIcon,
-    ExpandLess as ExpandLessIcon
+    Build as BuildIcon
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useAuth } from '../contexts/AuthContext';
-import { jwtDecode } from 'jwt-decode';
-import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
+import { MaintenanceType, MaintenanceTypeLabels } from '../database/entities/Maintenance';
+import SwipeableMaintenanceManagementCard from './SwipeableMaintenanceManagementCard';
 import dayjs from 'dayjs';
 
 // Maintenance-Interface angepasst an die echte Datenbank-Entität
 interface Maintenance {
     id: number;
-    carId: number;
     type: string;
-    name: string;
+    name?: string;
     description?: string;
     lastPerformed?: string;
     lastMileage?: number;
-    intervalMonths?: number;
-    intervalKilometers?: number;
-    nextDue?: string;
-    nextMileageDue?: number;
-    reminderAdvanceDays?: number;
-    reminderAdvanceKm?: number;
     cost?: number;
-    location?: string;
     notes?: string;
+    carId: number;
     isCompleted: boolean;
     createdAt: string;
     updatedAt: string;
-    maintenanceType?: {
-        id: number;
-        name: string;
-        category?: string;
-    };
 }
 
 interface EditMaintenanceDialogProps {
@@ -79,9 +51,10 @@ interface EditMaintenanceDialogProps {
     maintenance: Maintenance | null;
     onClose: () => void;
     onSave: (maintenance: Maintenance) => Promise<void>;
+    selectedCategories: MaintenanceType[];
 }
 
-function EditMaintenanceDialog({ open, maintenance, onClose, onSave }: EditMaintenanceDialogProps) {
+function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCategories }: EditMaintenanceDialogProps) {
     const [formData, setFormData] = useState({
         lastPerformed: dayjs(),
         name: '',
@@ -91,21 +64,40 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave }: EditMaint
         notes: ''
     });
 
+    // Nur die auf der Wartungsseite ausgewählten Kategorien anzeigen
+    const maintenanceTypes = selectedCategories.length > 0 
+        ? selectedCategories.map(type => ({
+            value: type,
+            label: MaintenanceTypeLabels[type]
+        }))
+        : Object.entries(MaintenanceTypeLabels).map(([value, label]) => ({
+            value,
+            label
+        }));
+
     useEffect(() => {
-        if (maintenance) {
+        if (maintenance && open) {
             setFormData({
                 lastPerformed: maintenance.lastPerformed ? dayjs(maintenance.lastPerformed) : dayjs(),
-                name: maintenance.name,
-                type: maintenance.type,
+                name: maintenance.name || '',
+                type: maintenance.type || 'other',
                 cost: maintenance.cost?.toString() || '',
                 lastMileage: maintenance.lastMileage?.toString() || '',
                 notes: maintenance.notes || ''
             });
+        } else if (open) {
+            setFormData({
+                lastPerformed: dayjs(),
+                name: '',
+                type: 'other',
+                cost: '',
+                lastMileage: '',
+                notes: ''
+            });
         }
-    }, [maintenance]);
+    }, [maintenance, open]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async () => {
         if (!maintenance) return;
 
         const updatedMaintenance: Maintenance = {
@@ -115,136 +107,100 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave }: EditMaint
             type: formData.type,
             cost: formData.cost ? parseFloat(formData.cost) : undefined,
             lastMileage: formData.lastMileage ? parseInt(formData.lastMileage) : undefined,
-            notes: formData.notes || undefined
+            notes: formData.notes
         };
 
         await onSave(updatedMaintenance);
-        onClose();
     };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const maintenanceTypes = [
-        { value: 'oil_change', label: 'Ölwechsel' },
-        { value: 'inspection', label: 'Inspektion' },
-        { value: 'tire_change', label: 'Reifenwechsel' },
-        { value: 'brake_service', label: 'Bremsenwartung' },
-        { value: 'other', label: 'Sonstiges' }
-    ];
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-            <form onSubmit={handleSubmit}>
-                <DialogTitle>Wartung bearbeiten</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={3} sx={{ mt: 1 }}>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <DialogTitle>Wartung bearbeiten</DialogTitle>
+            <DialogContent>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        <DatePicker
+                            label="Datum der Durchführung"
+                            value={formData.lastPerformed}
+                            onChange={(newValue) => setFormData(prev => ({ ...prev, lastPerformed: dayjs(newValue) }))}
+                            slotProps={{ textField: { fullWidth: true } }}
+                        />
+                        
+                        <TextField
+                            label="Name/Beschreibung"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            fullWidth
+                        />
+                        
                         <FormControl fullWidth>
-                            <InputLabel>Typ</InputLabel>
+                            <InputLabel>Wartungstyp</InputLabel>
                             <Select
-                                name="type"
                                 value={formData.type}
-                                label="Typ"
-                                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Maintenance['type'] }))}
+                                label="Wartungstyp"
+                                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
                             >
-                                {maintenanceTypes.map(type => (
+                                {maintenanceTypes.map((type) => (
                                     <MenuItem key={type.value} value={type.value}>
                                         {type.label}
                                     </MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
-
-                        <LocalizationProvider dateAdapter={AdapterDayjs}>
-                            <DatePicker
-                                label="Datum"
-                                value={formData.lastPerformed}
-                                onChange={(newValue) => setFormData(prev => ({ ...prev, lastPerformed: newValue || dayjs() }))}
-                                format="DD.MM.YYYY"
-                                slotProps={{
-                                    textField: {
-                                        fullWidth: true,
-                                        required: true
-                                    }
-                                }}
-                            />
-                        </LocalizationProvider>
-
+                        
                         <TextField
-                            name="lastMileage"
-                            label="Kilometerstand"
-                            type="number"
-                            value={formData.lastMileage}
-                            onChange={handleChange}
-                            fullWidth
-                            inputProps={{ min: 0 }}
-                        />
-
-                        <TextField
-                            name="cost"
                             label="Kosten (€)"
                             type="number"
                             value={formData.cost}
-                            onChange={handleChange}
+                            onChange={(e) => setFormData(prev => ({ ...prev, cost: e.target.value }))}
                             fullWidth
-                            inputProps={{ min: 0, step: 0.01 }}
                         />
-
+                        
                         <TextField
-                            name="notes"
-                            label="Notizen"
-                            value={formData.notes}
-                            onChange={handleChange}
+                            label="Kilometerstand"
+                            type="number"
+                            value={formData.lastMileage}
+                            onChange={(e) => setFormData(prev => ({ ...prev, lastMileage: e.target.value }))}
                             fullWidth
+                        />
+                        
+                        <TextField
+                            label="Notizen"
                             multiline
-                            rows={2}
-                            placeholder="Zusätzliche Informationen..."
+                            rows={3}
+                            value={formData.notes}
+                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                            fullWidth
                         />
                     </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={onClose}>Abbrechen</Button>
-                    <Button type="submit" variant="contained">Speichern</Button>
-                </DialogActions>
-            </form>
+                </LocalizationProvider>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>Abbrechen</Button>
+                <Button onClick={handleSave} variant="contained">Speichern</Button>
+            </DialogActions>
         </Dialog>
     );
 }
 
-export default function MaintenanceManagement() {
+interface MaintenanceManagementProps {
+    selectedCategories: MaintenanceType[];
+}
+
+function MaintenanceManagement({ selectedCategories }: MaintenanceManagementProps) {
+    const { token, selectedCarId } = useAuth();
+    
     const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    
-    // Sortierung und Filterung
-    const [orderBy, setOrderBy] = useState<keyof Maintenance>('lastPerformed');
-    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-    const [filtersOpen, setFiltersOpen] = useState(false);
-    const [filters, setFilters] = useState({
-        dateFrom: '',
-        dateTo: '',
-        name: '',
-        costMin: '',
-        costMax: ''
-    });
-    
-    const { token } = useAuth();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [selectedMaintenance, setSelectedMaintenance] = useState<Maintenance | null>(null);
 
     const fetchMaintenances = async () => {
-        if (!token) {
-            setError('Nicht angemeldet');
-            setLoading(false);
+        if (!token || !selectedCarId) {
+            console.log('MaintenanceManagement: No token or selectedCarId available', { token: !!token, selectedCarId });
             return;
         }
 
@@ -252,42 +208,32 @@ export default function MaintenanceManagement() {
             setLoading(true);
             setError(null);
             
-            const decoded = jwtDecode<JWTPayload>(token);
-            if (!decoded.selectedCarId) {
-                setError('Kein Auto ausgewählt');
-                setLoading(false);
-                return;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/maintenance/${decoded.selectedCarId}`, {
+            console.log('MaintenanceManagement: Fetching maintenances for car', selectedCarId);
+            const response = await fetch(`${API_BASE_URL}/maintenance/${selectedCarId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
-                if (response.status === 404) {
-                    setMaintenances([]);
-                    setLoading(false);
-                    return;
-                }
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error('Fehler beim Laden der Wartungen');
             }
 
             const data = await response.json();
-            // Nach Datum sortieren (neueste zuerst)
-            const sortedData = data.sort((a: Maintenance, b: Maintenance) => 
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-            setMaintenances(sortedData);
+            console.log('MaintenanceManagement: Received data', data);
+            setMaintenances(data);
         } catch (err) {
             console.error('Error fetching maintenances:', err);
-            setError(err instanceof Error ? err.message : 'Fehler beim Laden der Wartungen');
+            setError(err instanceof Error ? err.message : 'Unbekannter Fehler beim Laden der Wartungen');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchMaintenances();
+    }, [token, selectedCarId]);
 
     const handleEdit = (maintenance: Maintenance) => {
         setSelectedMaintenance(maintenance);
@@ -302,365 +248,120 @@ export default function MaintenanceManagement() {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(updatedMaintenance),
+                body: JSON.stringify(updatedMaintenance)
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error('Fehler beim Speichern der Wartung');
             }
 
-            await fetchMaintenances(); // Daten neu laden
+            await fetchMaintenances();
+            setEditDialogOpen(false);
+            setSelectedMaintenance(null);
         } catch (err) {
-            console.error('Error updating maintenance:', err);
-            setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
+            console.error('Error saving maintenance:', err);
+            setError(err instanceof Error ? err.message : 'Fehler beim Speichern der Wartung');
         }
     };
 
     const handleDelete = async (maintenanceId: number) => {
-        if (!token || !confirm('Möchten Sie diese Wartung wirklich löschen?')) return;
+        if (!token) return;
 
         try {
             const response = await fetch(`${API_BASE_URL}/maintenance/${maintenanceId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error('Fehler beim Löschen der Wartung');
             }
 
-            await fetchMaintenances(); // Daten neu laden
+            await fetchMaintenances();
         } catch (err) {
             console.error('Error deleting maintenance:', err);
-            setError(err instanceof Error ? err.message : 'Fehler beim Löschen');
+            setError(err instanceof Error ? err.message : 'Fehler beim Löschen der Wartung');
         }
     };
 
-    const getMaintenanceTypeLabel = (type: Maintenance['type']) => {
-        const types = {
-            oil_change: 'Ölwechsel',
-            inspection: 'Inspektion',
-            tire_change: 'Reifenwechsel',
-            brake_service: 'Bremsenwartung',
-            other: 'Sonstiges'
-        };
-        return types[type];
-    };
-
-    const getMaintenanceTypeColor = (type: Maintenance['type']) => {
-        const colors = {
-            oil_change: 'warning',
-            inspection: 'primary',
-            tire_change: 'info',
-            brake_service: 'error',
-            other: 'default'
-        } as const;
-        return colors[type];
-    };
-
-    useEffect(() => {
-        fetchMaintenances();
-    }, [token]);
-
-    // Sortier- und Filterfunktionen
-    const handleRequestSort = (property: keyof Maintenance) => {
-        const isAsc = orderBy === property && order === 'asc';
-        setOrder(isAsc ? 'desc' : 'asc');
-        setOrderBy(property);
-    };
-
-    const handleFilterChange = (field: string, value: string) => {
-        setFilters(prev => ({ ...prev, [field]: value }));
-        setPage(0); // Reset zur ersten Seite
-    };
-
-    const sortMaintenances = (maintenances: Maintenance[]) => {
-        return maintenances.sort((a, b) => {
-            let aVal: any = a[orderBy];
-            let bVal: any = b[orderBy];
-
-            // Spezielle Behandlung für Datumsfelder
-            if (orderBy === 'lastPerformed' || orderBy === 'nextDue') {
-                aVal = new Date(aVal).getTime();
-                bVal = new Date(bVal).getTime();
-            }
-
-            if (bVal < aVal) {
-                return order === 'asc' ? 1 : -1;
-            }
-            if (bVal > aVal) {
-                return order === 'asc' ? -1 : 1;
-            }
-            return 0;
-        });
-    };
-
-    const filterMaintenances = (maintenances: Maintenance[]) => {
-        return maintenances.filter(maintenance => {
-            // Datumsfilter
-            if (filters.dateFrom && dayjs(maintenance.lastPerformed).isBefore(dayjs(filters.dateFrom))) {
-                return false;
-            }
-            if (filters.dateTo && dayjs(maintenance.lastPerformed).isAfter(dayjs(filters.dateTo))) {
-                return false;
-            }
-
-            // Namefilter
-            if (filters.name && !maintenance.name.toLowerCase().includes(filters.name.toLowerCase())) {
-                return false;
-            }
-
-            // Kostenfilter
-            if (filters.costMin && (!maintenance.cost || maintenance.cost < parseFloat(filters.costMin))) {
-                return false;
-            }
-            if (filters.costMax && (!maintenance.cost || maintenance.cost > parseFloat(filters.costMax))) {
-                return false;
-            }
-
-            return true;
-        });
-    };
-
-    const processedMaintenances = sortMaintenances(filterMaintenances(maintenances));
-
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (error) {
-        return (
-            <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-            </Alert>
-        );
-    }
-
-    const paginatedMaintenances = processedMaintenances.slice(
+    // Pagination
+    const paginatedMaintenances = maintenances.slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
     );
 
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6">
-                    <BuildIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Wartungen ({processedMaintenances.length} von {maintenances.length})
-                </Typography>
-            </Box>
-
-            {maintenances.length === 0 ? (
-                <Alert severity="info">
-                    Noch keine Wartungen vorhanden.
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
                 </Alert>
+            )}
+
+            {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <CircularProgress />
+                </Box>
             ) : (
                 <>
-                    {/* Filter-Bereich - Temporär auskommentiert */}
-                    {/*
-                    <Paper sx={{ mb: 2 }}>
-                        <Box sx={{ p: 2 }}>
-                            <Box 
-                                sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'space-between',
-                                    cursor: 'pointer',
-                                    '&:hover': { backgroundColor: 'action.hover' },
-                                    borderRadius: 1,
-                                    p: 1,
-                                    mx: -1
-                                }}
-                                onClick={() => setFiltersOpen(!filtersOpen)}
-                            >
-                                <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <FilterIcon />
-                                    Filter
-                                </Typography>
-                                {filtersOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                            </Box>
-                            
-                            <Collapse in={filtersOpen}>
-                                <Box sx={{ pt: 2 }}>
-                                    <Stack spacing={2}>
-                                        <Box sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: 2
-                                        }}>
-                                            <TextField
-                                                label="Von Datum"
-                                                type="date"
-                                                value={filters.dateFrom}
-                                                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                InputLabelProps={{ shrink: true }}
-                                            />
-                                            <TextField
-                                                label="Bis Datum"
-                                                type="date"
-                                                value={filters.dateTo}
-                                                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                InputLabelProps={{ shrink: true }}
-                                            />
-                                        </Box>
-                                        
-                                        <Box sx={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: 2
-                                        }}>
-                                            <TextField
-                                                label="Min. Kosten"
-                                                type="number"
-                                                value={filters.costMin}
-                                                onChange={(e) => handleFilterChange('costMin', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                inputProps={{ min: 0, step: 0.01 }}
-                                            />
-                                            <TextField
-                                                label="Max. Kosten"
-                                                type="number"
-                                                value={filters.costMax}
-                                                onChange={(e) => handleFilterChange('costMax', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                                inputProps={{ min: 0, step: 0.01 }}
-                                            />
-                                        </Box>
-                                        
-                                        <Box>
-                                            <TextField
-                                                label="Name suchen"
-                                                value={filters.name}
-                                                onChange={(e) => handleFilterChange('name', e.target.value)}
-                                                size="small"
-                                                fullWidth
-                                            />
-                                        </Box>
-                                    </Stack>
-                                </Box>
-                            </Collapse>
-                        </Box>
-                    </Paper>
-                    */}
-
-                    <TableContainer component={Paper} sx={{ mb: 2 }}>
-                        <Table size={isMobile ? "small" : "medium"}>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'lastPerformed'}
-                                            direction={orderBy === 'lastPerformed' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('lastPerformed')}
-                                        >
-                                            Datum
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'name'}
-                                            direction={orderBy === 'name' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('name')}
-                                        >
-                                            Name
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <TableSortLabel
-                                            active={orderBy === 'cost'}
-                                            direction={orderBy === 'cost' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('cost')}
-                                        >
-                                            Kosten
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <TableSortLabel
-                                            active={orderBy === 'lastMileage'}
-                                            direction={orderBy === 'lastMileage' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('lastMileage')}
-                                        >
-                                            KM-Stand
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="center">Aktionen</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
+                    {maintenances.length === 0 ? (
+                        <Paper sx={{ p: 4, textAlign: 'center' }}>
+                            <BuildIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary" gutterBottom>
+                                Keine Wartungen gefunden
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Fügen Sie Wartungen über die Wartungsseite hinzu.
+                            </Typography>
+                        </Paper>
+                    ) : (
+                        <>
+                            {/* Kartenansicht für Mobile und Desktop */}
+                            <Box sx={{ 
+                                mb: 2, 
+                                width: '100%',
+                                maxWidth: '100%',
+                                overflow: 'hidden'
+                            }}>
                                 {paginatedMaintenances.map((maintenance) => (
-                                    <TableRow key={maintenance.id} hover>
-                                        <TableCell>
-                                            {dayjs(maintenance.lastPerformed).format('DD.MM.YYYY')}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                                {maintenance.name}
-                                            </Typography>
-                                            {maintenance.description && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {maintenance.description.length > 40 
-                                                        ? maintenance.description.substring(0, 40) + '...'
-                                                        : maintenance.description
-                                                    }
-                                                </Typography>
-                                            )}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {maintenance.cost ? `${maintenance.cost.toFixed(2)} €` : '-'}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {maintenance.lastMileage ? `${maintenance.lastMileage.toLocaleString()} km` : '-'}
-                                        </TableCell>
-                                        <TableCell align="center">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleEdit(maintenance)}
-                                                color="primary"
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleDelete(maintenance.id)}
-                                                color="error"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </TableCell>
-                                    </TableRow>
+                                    <SwipeableMaintenanceManagementCard
+                                        key={maintenance.id}
+                                        maintenance={maintenance}
+                                        onEdit={(maintenance) => handleEdit(maintenance as any)}
+                                        onDelete={(maintenance) => handleDelete(maintenance.id)}
+                                    />
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                            </Box>
 
-                    <TablePagination
-                        rowsPerPageOptions={[5, 10, 25, 50]}
-                        component="div"
-                        count={processedMaintenances.length}
-                        rowsPerPage={rowsPerPage}
-                        page={page}
-                        onPageChange={(_event, newPage) => setPage(newPage)}
-                        onRowsPerPageChange={(event) => {
-                            setRowsPerPage(parseInt(event.target.value, 10));
-                            setPage(0);
-                        }}
-                        labelRowsPerPage="Zeilen pro Seite:"
-                    />
+                            {/* Pagination für Karten */}
+                            {maintenances.length > rowsPerPage && (
+                                <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {maintenances.length} Wartungen insgesamt
+                                    </Typography>
+                                    <TablePagination
+                                        rowsPerPageOptions={[5, 10, 25, 50]}
+                                        component="div"
+                                        count={maintenances.length}
+                                        rowsPerPage={rowsPerPage}
+                                        page={page}
+                                        onPageChange={(_event, newPage) => setPage(newPage)}
+                                        onRowsPerPageChange={(event) => {
+                                            setRowsPerPage(parseInt(event.target.value, 10));
+                                            setPage(0);
+                                        }}
+                                        labelRowsPerPage="Pro Seite:"
+                                        showFirstButton
+                                        showLastButton
+                                    />
+                                </Paper>
+                            )}
+                        </>
+                    )}
                 </>
             )}
 
@@ -672,7 +373,10 @@ export default function MaintenanceManagement() {
                     setSelectedMaintenance(null);
                 }}
                 onSave={handleSave}
+                selectedCategories={selectedCategories}
             />
         </Box>
     );
 }
+
+export default MaintenanceManagement;

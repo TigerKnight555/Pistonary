@@ -598,7 +598,12 @@ export default function EventsManagement() {
                             </TableHead>
                             <TableBody>
                                 {paginatedEvents.map((event) => (
-                                    <TableRow key={event.id} hover>
+                                    <TableRow 
+                                        key={event.id} 
+                                        hover
+                                        onClick={() => handleEdit(event)}
+                                        sx={{ cursor: 'pointer' }}
+                                    >
                                         <TableCell>
                                             {dayjs(event.date).format('DD.MM.YYYY')}
                                         </TableCell>
@@ -631,14 +636,20 @@ export default function EventsManagement() {
                                         <TableCell align="center">
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleEdit(event)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(event);
+                                                }}
                                                 color="primary"
                                             >
                                                 <EditIcon />
                                             </IconButton>
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleDelete(event.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(event.id);
+                                                }}
                                                 color="error"
                                             >
                                                 <DeleteIcon />

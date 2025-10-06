@@ -248,8 +248,8 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 0, sm: 1, md: 2 }, // Minimal padding for maximum widget width
-          width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },  // 100% Breite auf Mobile
+          p: { xs: 0, sm: 0.5, md: 1 }, // Noch weniger Padding für maximale Breite
+          width: { xs: '100vw', sm: `calc(100% - ${drawerWidth}px)` },  // Volle Viewport-Breite auf Mobile
           mt: { xs: 8, sm: 8 },  // AppBar height
           mb: { xs: 8, sm: 0 },  // Bottom Navigation height on mobile
           position: 'relative',

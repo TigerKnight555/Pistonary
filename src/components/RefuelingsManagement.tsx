@@ -27,19 +27,14 @@ import {
     useTheme,
     useMediaQuery,
     TableSortLabel,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel,
-    Collapse
+
+    Pagination
 } from '@mui/material';
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
     LocalGasStation as GasIcon,
-    FilterList as FilterIcon,
-    ExpandMore as ExpandMoreIcon,
-    ExpandLess as ExpandLessIcon
+
 } from '@mui/icons-material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -49,6 +44,8 @@ import { jwtDecode } from 'jwt-decode';
 import type { Refueling } from '../database/entities/Refueling';
 import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
+
+import SwipeableRefuelingCard from './SwipeableRefuelingCard';
 import dayjs from 'dayjs';
 
 interface EditRefuelingDialogProps {
@@ -67,6 +64,9 @@ function EditRefuelingDialog({ open, refueling, onClose, onSave }: EditRefueling
         isPartialRefueling: false,
         notes: ''
     });
+    
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     useEffect(() => {
         if (refueling) {
@@ -111,11 +111,25 @@ function EditRefuelingDialog({ open, refueling, onClose, onSave }: EditRefueling
         (parseFloat(formData.price) / parseFloat(formData.amount)).toFixed(3) : '';
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog 
+            open={open} 
+            onClose={onClose} 
+            maxWidth="sm" 
+            fullWidth
+            fullScreen={isMobile}
+            sx={{
+                '& .MuiDialog-paper': {
+                    margin: isMobile ? 0 : 2,
+                    maxHeight: isMobile ? '100vh' : 'calc(100vh - 64px)',
+                }
+            }}
+        >
             <form onSubmit={handleSubmit}>
-                <DialogTitle>Tankung bearbeiten</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={3} sx={{ mt: 1 }}>
+                <DialogTitle sx={{ px: isMobile ? 2 : 3 }}>
+                    Tankung bearbeiten
+                </DialogTitle>
+                <DialogContent sx={{ px: isMobile ? 2 : 3 }}>
+                    <Stack spacing={isMobile ? 2 : 3} sx={{ mt: 1 }}>
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
                                 label="Datum"
@@ -201,9 +215,31 @@ function EditRefuelingDialog({ open, refueling, onClose, onSave }: EditRefueling
                         />
                     </Stack>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={onClose}>Abbrechen</Button>
-                    <Button type="submit" variant="contained">Speichern</Button>
+                <DialogActions sx={{ 
+                    px: isMobile ? 2 : 3,
+                    pb: isMobile ? 2 : 2,
+                    gap: isMobile ? 1 : 0,
+                    flexDirection: isMobile ? 'column' : 'row'
+                }}>
+                    <Button 
+                        onClick={onClose}
+                        sx={{ 
+                            width: isMobile ? '100%' : 'auto',
+                            order: isMobile ? 2 : 1
+                        }}
+                    >
+                        Abbrechen
+                    </Button>
+                    <Button 
+                        type="submit" 
+                        variant="contained"
+                        sx={{ 
+                            width: isMobile ? '100%' : 'auto',
+                            order: isMobile ? 1 : 2
+                        }}
+                    >
+                        Speichern
+                    </Button>
                 </DialogActions>
             </form>
         </Dialog>
@@ -218,6 +254,8 @@ export default function RefuelingsManagement() {
     const [selectedRefueling, setSelectedRefueling] = useState<Refueling | null>(null);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [mobilePage, setMobilePage] = useState(1);
+    const mobileItemsPerPage = 5;
     
     // Sortierung und Filterung
     const [orderBy, setOrderBy] = useState<keyof Refueling>('date');
@@ -440,6 +478,13 @@ export default function RefuelingsManagement() {
         page * rowsPerPage + rowsPerPage
     );
 
+    const mobilePaginatedRefuelings = processedRefuelings.slice(
+        (mobilePage - 1) * mobileItemsPerPage,
+        mobilePage * mobileItemsPerPage
+    );
+
+    const totalMobilePages = Math.ceil(processedRefuelings.length / mobileItemsPerPage);
+
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -592,119 +637,176 @@ export default function RefuelingsManagement() {
                 </Alert>
             ) : (
                 <>
-                    <TableContainer component={Paper} sx={{ mb: 2 }}>
-                        <Table size={isMobile ? "small" : "medium"}>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'date'}
-                                            direction={orderBy === 'date' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('date')}
-                                        >
-                                            Datum
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <TableSortLabel
-                                            active={orderBy === 'amount'}
-                                            direction={orderBy === 'amount' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('amount')}
-                                        >
-                                            Liter
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <TableSortLabel
-                                            active={orderBy === 'price'}
-                                            direction={orderBy === 'price' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('price')}
-                                        >
-                                            Preis
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="right">€/L</TableCell>
-                                    <TableCell align="right">
-                                        <TableSortLabel
-                                            active={orderBy === 'mileage'}
-                                            direction={orderBy === 'mileage' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('mileage')}
-                                        >
-                                            KM-Stand
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell>
-                                        <TableSortLabel
-                                            active={orderBy === 'isPartialRefueling'}
-                                            direction={orderBy === 'isPartialRefueling' ? order : 'asc'}
-                                            onClick={() => handleRequestSort('isPartialRefueling')}
-                                        >
-                                            Typ
-                                        </TableSortLabel>
-                                    </TableCell>
-                                    <TableCell align="center">Aktionen</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {paginatedRefuelings.map((refueling) => (
-                                    <TableRow key={refueling.id} hover>
-                                        <TableCell>
-                                            {dayjs(refueling.date).format('DD.MM.YYYY')}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {refueling.amount.toFixed(2)} L
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {refueling.price.toFixed(2)} €
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {(refueling.price / refueling.amount).toFixed(3)}
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            {refueling.mileage.toLocaleString()} km
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={refueling.isPartialRefueling ? 'Teil' : 'Voll'}
-                                                color={refueling.isPartialRefueling ? 'warning' : 'success'}
-                                                size="small"
-                                            />
-                                        </TableCell>
-                                        <TableCell align="center">
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleEdit(refueling)}
-                                                color="primary"
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleDelete(refueling.id)}
-                                                color="error"
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </TableCell>
-                                    </TableRow>
+                    {/* Mobile Ansicht - Karten */}
+                    {isMobile ? (
+                        <>
+                            <Box sx={{ 
+                                mb: 2, 
+                                width: '100%',
+                                maxWidth: '100%',
+                                overflow: 'hidden'
+                            }}>
+                                {mobilePaginatedRefuelings.map((refueling) => (
+                                    <SwipeableRefuelingCard
+                                        key={refueling.id}
+                                        refueling={refueling}
+                                        onEdit={handleEdit}
+                                        onDelete={(refueling) => handleDelete(refueling.id)}
+                                    />
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                            </Box>
 
-                    <TablePagination
-                        rowsPerPageOptions={[5, 10, 25, 50]}
-                        component="div"
-                        count={processedRefuelings.length}
-                        rowsPerPage={rowsPerPage}
-                        page={page}
-                        onPageChange={(_event, newPage) => setPage(newPage)}
-                        onRowsPerPageChange={(event) => {
-                            setRowsPerPage(parseInt(event.target.value, 10));
-                            setPage(0);
-                        }}
-                        labelRowsPerPage="Zeilen pro Seite:"
-                    />
+                            {/* Mobile Pagination */}
+                            {totalMobilePages > 1 && (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                                    <Pagination
+                                        count={totalMobilePages}
+                                        page={mobilePage}
+                                        onChange={(_, newPage) => setMobilePage(newPage)}
+                                        color="primary"
+                                        size="large"
+                                    />
+                                </Box>
+                            )}
+
+                            {/* Mobile Info */}
+                            <Typography 
+                                variant="caption" 
+                                color="text.secondary" 
+                                sx={{ display: 'block', textAlign: 'center', mt: 2 }}
+                            >
+                                Zeige {mobilePaginatedRefuelings.length} von {processedRefuelings.length} Tankungen
+                            </Typography>
+                        </>
+                    ) : (
+                        /* Desktop Ansicht - Tabelle */
+                        <>
+                            <TableContainer component={Paper} sx={{ mb: 2 }}>
+                                <Table size="medium">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>
+                                                <TableSortLabel
+                                                    active={orderBy === 'date'}
+                                                    direction={orderBy === 'date' ? order : 'asc'}
+                                                    onClick={() => handleRequestSort('date')}
+                                                >
+                                                    Datum
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <TableSortLabel
+                                                    active={orderBy === 'amount'}
+                                                    direction={orderBy === 'amount' ? order : 'asc'}
+                                                    onClick={() => handleRequestSort('amount')}
+                                                >
+                                                    Liter
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <TableSortLabel
+                                                    active={orderBy === 'price'}
+                                                    direction={orderBy === 'price' ? order : 'asc'}
+                                                    onClick={() => handleRequestSort('price')}
+                                                >
+                                                    Preis
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="right">€/L</TableCell>
+                                            <TableCell align="right">
+                                                <TableSortLabel
+                                                    active={orderBy === 'mileage'}
+                                                    direction={orderBy === 'mileage' ? order : 'asc'}
+                                                    onClick={() => handleRequestSort('mileage')}
+                                                >
+                                                    KM-Stand
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell>
+                                                <TableSortLabel
+                                                    active={orderBy === 'isPartialRefueling'}
+                                                    direction={orderBy === 'isPartialRefueling' ? order : 'asc'}
+                                                    onClick={() => handleRequestSort('isPartialRefueling')}
+                                                >
+                                                    Typ
+                                                </TableSortLabel>
+                                            </TableCell>
+                                            <TableCell align="center">Aktionen</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {paginatedRefuelings.map((refueling) => (
+                                            <TableRow 
+                                                key={refueling.id} 
+                                                hover
+                                                onClick={() => handleEdit(refueling)}
+                                                sx={{ cursor: 'pointer' }}
+                                            >
+                                                <TableCell>
+                                                    {dayjs(refueling.date).format('DD.MM.YYYY')}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {refueling.amount.toFixed(2)} L
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {refueling.price.toFixed(2)} €
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {(refueling.price / refueling.amount).toFixed(3)}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {refueling.mileage.toLocaleString()} km
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={refueling.isPartialRefueling ? 'Teil' : 'Voll'}
+                                                        color={refueling.isPartialRefueling ? 'warning' : 'success'}
+                                                        size="small"
+                                                    />
+                                                </TableCell>
+                                                <TableCell align="center">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEdit(refueling);
+                                                        }}
+                                                        color="primary"
+                                                    >
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(refueling.id);
+                                                        }}
+                                                        color="error"
+                                                    >
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+
+                            <TablePagination
+                                rowsPerPageOptions={[5, 10, 25, 50]}
+                                component="div"
+                                count={processedRefuelings.length}
+                                rowsPerPage={rowsPerPage}
+                                page={page}
+                                onPageChange={(_event, newPage) => setPage(newPage)}
+                                onRowsPerPageChange={(event) => {
+                                    setRowsPerPage(parseInt(event.target.value, 10));
+                                    setPage(0);
+                                }}
+                                labelRowsPerPage="Zeilen pro Seite:"
+                            />
+                        </>
+                    )}
                 </>
             )}
 
