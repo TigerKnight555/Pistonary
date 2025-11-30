@@ -38,8 +38,8 @@ async function startServer() {
 
         // Middleware
         app.use(cors({
-            // Erlaubt Zugriffe von allen möglichen Vite Ports
-            origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178', 'http://localhost:5179', 'http://localhost:5180', 'http://localhost:5181'],
+            // Erlaube alle Origins in Production
+            origin: true,
             credentials: true
         }));
         // Erhöhe das Limit für JSON-Payloads um Base64-Bilder zu unterstützen
@@ -131,9 +131,9 @@ async function startServer() {
             }
         });
 
-        // Starte den Server
-        const server = app.listen(PORT, () => {
-            console.log(`Server läuft auf http://localhost:${PORT}`);
+        // Starte den Server auf 0.0.0.0 um von außen erreichbar zu sein
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server läuft auf http://0.0.0.0:${PORT}`);
         });
 
         // Verhindere, dass der Server sich beendet
