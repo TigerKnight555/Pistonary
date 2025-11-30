@@ -5,15 +5,17 @@ services:
     build: .
     container_name: pistonary
     ports:
+      # Format: "HOST_PORT:CONTAINER_PORT"
+      # Wenn Port 3001 schon belegt ist, ändere die linke Zahl, z.B. "8080:3001"
       - "3001:3001"
     volumes:
-      # Persistiere die SQLite-Datenbank
+      # Persistiere die SQLite-Datenbank im Projektordner
       - ./data:/app/data
       # Optional: Wenn du die Datenbank woanders speichern möchtest
       # - /pfad/auf/host:/app/data
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=3001  # Interner Container-Port (normalerweise nicht ändern)
       # Optional: JWT Secret (empfohlen für Produktion)
       # - JWT_SECRET=dein-super-geheimer-schluessel
     restart: unless-stopped
@@ -22,4 +24,5 @@ services:
 
 networks:
   pistonary-network:
+    # Eigenes isoliertes Netzwerk - beeinflusst KEINE anderen Container
     driver: bridge
