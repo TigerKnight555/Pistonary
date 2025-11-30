@@ -13,8 +13,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build frontend (mit TSC_COMPILE_ON_ERROR=true um trotz TypeScript-Fehler zu bauen)
-ENV TSC_COMPILE_ON_ERROR=true
+# Build frontend (nur Vite, ohne TypeScript-Check)
 RUN npm run build
 
 # Stage 2: Production image
