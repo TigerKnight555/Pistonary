@@ -20,7 +20,6 @@ import type { TransitionProps } from '@mui/material/transitions';
 import {
     Delete as DeleteIcon
 } from '@mui/icons-material';
-import type { Refueling } from '../database/entities/Refueling';
 import dayjs from 'dayjs';
 
 // Slide transition for delete animation
@@ -33,14 +32,26 @@ const Transition = React.forwardRef(function Transition(
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-interface SwipeableRefuelingCardProps {
-    refueling: Refueling;
-    onEdit: (refueling: Refueling) => void;
-    onDelete: (refueling: Refueling) => void;
+interface Investment {
+    id: number;
+    carId: number;
+    date: string;
+    description: string;
+    amount: number;
+    category?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
-const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({ 
-    refueling, 
+interface SwipeableInvestmentCardProps {
+    investment: Investment;
+    onEdit: (investment: Investment) => void;
+    onDelete: (investment: Investment) => void;
+}
+
+const SwipeableInvestmentCard: React.FC<SwipeableInvestmentCardProps> = ({ 
+    investment, 
     onEdit, 
     onDelete 
 }) => {
@@ -53,8 +64,6 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
     const currentXRef = useRef(0);
 
     const DELETE_THRESHOLD = -50; // Schwellenwert für automatisches Öffnen des Delete-Dialogs
-
-    const pricePerLiter = (refueling.price / refueling.amount).toFixed(3);
 
     // Touch Events
     const handleTouchStart = (e: React.TouchEvent) => {
@@ -151,7 +160,7 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
 
     const handleConfirmDelete = () => {
         setShowDeleteDialog(false);
-        onDelete(refueling);
+        onDelete(investment);
     };
 
     const handleCancelDelete = () => {
@@ -163,7 +172,7 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
     const handleCardClick = () => {
         // Nur bei Klick ohne Swipe bearbeiten
         if (Math.abs(translateX) < 5) {
-            onEdit(refueling);
+            onEdit(investment);
         }
     };
 
@@ -255,14 +264,14 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
                         }}
                     >
                         <CardContent sx={{ p: 1.5 }}>
-                            {/* Header mit Datum und Preis */}
+                            {/* Header mit Datum und Betrag */}
                             <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.8 }}>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                    {dayjs(refueling.date).format('DD.MM.YYYY')}
+                                    {dayjs(investment.date).format('DD.MM.YYYY')}
                                 </Typography>
                                 <Chip 
-                                    label={`${refueling.price.toFixed(2)} €`} 
-                                    color="success" 
+                                    label={`${investment.amount.toFixed(2)} €`} 
+                                    color="primary" 
                                     variant="filled" 
                                     size="small"
                                     sx={{ 
@@ -274,42 +283,36 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
 
                             {/* Hauptinformationen */}
                             <Box sx={{ mb: 1.5 }}>
-                                <Typography variant="h6" color="primary" fontWeight="bold" sx={{ fontSize: '1.4rem' }}>
-                                    {refueling.amount.toFixed(2)} L
+                                <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1.2rem' }}>
+                                    {investment.description}
                                 </Typography>
+                                {investment.category && (
+                                    <Chip 
+                                        label={investment.category} 
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ 
+                                            mt: 0.5,
+                                            fontSize: '0.7rem',
+                                            height: '20px'
+                                        }}
+                                    />
+                                )}
                             </Box>
 
-                            <Divider sx={{ mb: 1.5 }} />
-
-                            {/* Zusätzliche Informationen */}
-                            <Stack spacing={0.5}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Preis pro Liter:
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.8rem' }}>
-                                        {pricePerLiter} €/L
-                                    </Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Kilometerstand:
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight="medium" sx={{ fontSize: '0.8rem' }}>
-                                        {refueling.mileage.toLocaleString()} km
-                                    </Typography>
-                                </Box>
-                                {refueling.notes && (
-                                    <Box sx={{ mt: 0.5, p: 0.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                            {investment.notes && (
+                                <>
+                                    <Divider sx={{ mb: 1 }} />
+                                    <Box sx={{ p: 0.5, bgcolor: 'action.hover', borderRadius: 1 }}>
                                         <Typography variant="caption" color="text.secondary">
                                             Notizen:
                                         </Typography>
                                         <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
-                                            {refueling.notes}
+                                            {investment.notes}
                                         </Typography>
                                     </Box>
-                                )}
-                            </Stack>
+                                </>
+                            )}
                         </CardContent>
                     </CardActionArea>
                 </Card>
@@ -324,13 +327,12 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
                 aria-describedby="delete-dialog-description"
             >
                 <DialogTitle>
-                    Tankung löschen?
+                    Investition löschen?
                 </DialogTitle>
                 <DialogContent>
                     <Typography id="delete-dialog-description">
-                        Möchten Sie die Tankung vom {dayjs(refueling.date).format('DD.MM.YYYY')} 
-                        ({refueling.amount.toFixed(2)} L für {refueling.price.toFixed(2)} €) 
-                        wirklich aus der Datenbank löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+                        Möchten Sie die Investition "{investment.description}" vom {dayjs(investment.date).format('DD.MM.YYYY')} 
+                        ({investment.amount.toFixed(2)} €) wirklich aus der Datenbank löschen? Diese Aktion kann nicht rückgängig gemacht werden.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
@@ -346,4 +348,4 @@ const SwipeableRefuelingCard: React.FC<SwipeableRefuelingCardProps> = ({
     );
 };
 
-export default SwipeableRefuelingCard;
+export default SwipeableInvestmentCard;

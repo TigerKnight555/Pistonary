@@ -1,49 +1,86 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, type Theme } from '@mui/material/styles';
 import { themeConfig } from './themeConfig';
 
-// Brand Colors aus Konfiguration
-const brandColors = {
-  primary: {
-    main: themeConfig.colors.primary,
-    light: '#64b5f6',
-    dark: '#1976d2',
-    contrastText: '#ffffff'
-  },
-  secondary: {
-    main: themeConfig.colors.secondary,
-    light: '#ffb74d',
-    dark: '#f57c00',
-    contrastText: '#ffffff'
-  },
-  accent: {
-    main: themeConfig.colors.success,
-    light: '#81c784',
-    dark: '#388e3c',
-  },
-  warning: {
-    main: themeConfig.colors.warning,
-    light: '#ff8a65',
-    dark: '#d84315',
-  }
+// Hilfsfunktion um hellere/dunklere Varianten einer Farbe zu erzeugen
+const lightenColor = (color: string, amount: number = 20): string => {
+  const hex = color.replace('#', '');
+  const num = parseInt(hex, 16);
+  const r = Math.min(255, ((num >> 16) & 0xff) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 };
 
-// Custom Theme
-export const pistonaryTheme = createTheme({
+const darkenColor = (color: string, amount: number = 20): string => {
+  const hex = color.replace('#', '');
+  const num = parseInt(hex, 16);
+  const r = Math.max(0, ((num >> 16) & 0xff) - amount);
+  const g = Math.max(0, ((num >> 8) & 0xff) - amount);
+  const b = Math.max(0, (num & 0xff) - amount);
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+};
+
+// Funktion zum Erstellen der Brand Colors
+const createBrandColors = (customColors?: { primary: string; secondary: string; accent: string }) => {
+  const primaryColor = customColors?.primary || themeConfig.colors.primary;
+  const secondaryColor = customColors?.secondary || themeConfig.colors.secondary;
+  const accentColor = customColors?.accent || themeConfig.colors.success;
+
+  return {
+    primary: {
+      main: primaryColor,
+      light: lightenColor(primaryColor, 30),
+      dark: darkenColor(primaryColor, 30),
+      contrastText: '#ffffff'
+    },
+    secondary: {
+      main: secondaryColor,
+      light: lightenColor(secondaryColor, 30),
+      dark: darkenColor(secondaryColor, 30),
+      contrastText: '#ffffff'
+    },
+    accent: {
+      main: accentColor,
+      light: lightenColor(accentColor, 30),
+      dark: darkenColor(accentColor, 30),
+    },
+    warning: {
+      main: themeConfig.colors.warning,
+      light: '#ff8a65',
+      dark: '#d84315',
+    }
+  };
+};
+
+// Funktion zum Erstellen eines Custom Themes
+export const createPistonaryTheme = (
+  customColors?: { primary: string; secondary: string; accent: string },
+  isDarkMode: boolean = true
+): Theme => {
+  const brandColors = createBrandColors(customColors);
+
+  return createTheme({
   palette: {
-    mode: 'dark',
+    mode: isDarkMode ? 'dark' : 'light',
     primary: brandColors.primary,
     secondary: brandColors.secondary,
     success: brandColors.accent,
     warning: brandColors.warning,
-    background: {
+    background: isDarkMode ? {
       default: themeConfig.darkMode.background.default,
       paper: themeConfig.darkMode.background.paper,
+    } : {
+      default: '#fafafa',
+      paper: '#ffffff',
     },
-    text: {
+    text: isDarkMode ? {
       primary: themeConfig.darkMode.text.primary,
       secondary: themeConfig.darkMode.text.secondary,
+    } : {
+      primary: 'rgba(0, 0, 0, 0.87)',
+      secondary: 'rgba(0, 0, 0, 0.6)',
     },
-    divider: themeConfig.darkMode.borders.light,
+    divider: isDarkMode ? themeConfig.darkMode.borders.light : 'rgba(0, 0, 0, 0.12)',
   },
   
   typography: {
@@ -134,9 +171,13 @@ export const pistonaryTheme = createTheme({
         root: {
           backgroundImage: 'none',
           borderRadius: themeConfig.layout.cardBorderRadius,
-          border: `1px solid ${themeConfig.darkMode.borders.light}`,
+          border: isDarkMode 
+            ? `1px solid ${themeConfig.darkMode.borders.light}` 
+            : '1px solid rgba(0, 0, 0, 0.12)',
           '&:hover': {
-            border: `1px solid ${themeConfig.darkMode.borders.medium}`,
+            border: isDarkMode 
+              ? `1px solid ${themeConfig.darkMode.borders.medium}` 
+              : '1px solid rgba(0, 0, 0, 0.23)',
           },
           transition: themeConfig.animations.hoverTransition,
         },
@@ -151,7 +192,7 @@ export const pistonaryTheme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
             '& fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.3)',
+              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
             },
             '&:hover fieldset': {
               borderColor: brandColors.primary.light,
@@ -172,7 +213,7 @@ export const pistonaryTheme = createTheme({
           '&.MuiOutlinedInput-root': {
             borderRadius: 8,
             '& fieldset': {
-              borderColor: 'rgba(255, 255, 255, 0.3)',
+              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
             },
             '&:hover fieldset': {
               borderColor: brandColors.primary.light,
@@ -190,12 +231,12 @@ export const pistonaryTheme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         notchedOutline: {
-          borderColor: 'rgba(255, 255, 255, 0.3)',
+          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
         },
         root: {
           borderRadius: 8,
           '& .MuiOutlinedInput-notchedOutline, & .MuiInputBase-root .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255, 255, 255, 0.3)',
+            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
           },
           '&:hover .MuiOutlinedInput-notchedOutline, &:hover .MuiInputBase-root .MuiOutlinedInput-notchedOutline': {
             borderColor: brandColors.primary.light,
@@ -212,7 +253,7 @@ export const pistonaryTheme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255, 255, 255, 0.3)',
+            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
             borderColor: brandColors.primary.light,
@@ -230,7 +271,7 @@ export const pistonaryTheme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255, 255, 255, 0.3)',
+              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.23)',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: brandColors.primary.light,
@@ -250,10 +291,10 @@ export const pistonaryTheme = createTheme({
         root: {
           borderRadius: 6,
           padding: '8px 16px',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          color: '#b0b0b0',
+          border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(0, 0, 0, 0.23)',
+          color: isDarkMode ? '#b0b0b0' : 'rgba(0, 0, 0, 0.6)',
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.04)',
             borderColor: brandColors.primary.light,
           },
           '&.Mui-selected': {
@@ -273,7 +314,7 @@ export const pistonaryTheme = createTheme({
       styleOverrides: {
         paper: {
           borderRadius: 16,
-          border: '1px solid rgba(255, 255, 255, 0.2)',
+          border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.12)',
         },
       },
     },
@@ -390,13 +431,14 @@ export const pistonaryTheme = createTheme({
       },
     },
   },
-});
+  });
+};
 
-// Chart Colors für Recharts
-export const chartColors = {
-  primary: themeConfig.colors.primary,
-  secondary: themeConfig.colors.secondary,
-  success: themeConfig.colors.success,
+// Chart Colors für Recharts (werden dynamisch in Komponenten berechnet)
+export const getChartColors = (customColors?: { primary: string; secondary: string; accent: string }) => ({
+  primary: customColors?.primary || themeConfig.colors.primary,
+  secondary: customColors?.secondary || themeConfig.colors.secondary,
+  success: customColors?.accent || themeConfig.colors.success,
   warning: themeConfig.colors.warning,
   mileage: themeConfig.colors.chart.mileage,
   price: themeConfig.colors.chart.price,
@@ -404,6 +446,10 @@ export const chartColors = {
   pricePerLiter: themeConfig.colors.chart.pricePerLiter,
   consumption: themeConfig.colors.chart.consumption,
   average: themeConfig.colors.chart.average,
-};
+});
+
+// Default Theme für Rückwärtskompatibilität
+export const pistonaryTheme = createPistonaryTheme();
 
 export default pistonaryTheme;
+

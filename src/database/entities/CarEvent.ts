@@ -8,7 +8,8 @@ export const EventType = {
     MODIFICATION: 'modification',      // Modifikation
     INSPECTION: 'inspection',         // Inspektion
     TIRE_CHANGE: 'tire_change',       // Reifenwechsel
-    OIL_CHANGE: 'oil_change',         // Ölwechsel
+    ENGINE_OIL: 'engine_oil',         // Motoröl
+    OIL_FILTER: 'oil_filter',         // Ölfilter
     SPARK_PLUGS: 'spark_plugs',       // Zündkerzen
     FILTER_CHANGE: 'filter_change',   // Filter wechseln
     BRAKE_SERVICE: 'brake_service',   // Bremsenservice

@@ -25,7 +25,7 @@ const getCategoryForType = (type: string): string => {
       'coolant', 'automatic_transmission_fluid', 'manual_transmission_fluid', 'differential_oil', 'power_steering_fluid'
     ],
     'Reifen und Elektronik': [
-      'tire_change', 'battery', 'wiper_blades'
+      'tire_change', 'tire_replacement', 'battery', 'wiper_blades'
     ],
     'Behördliche Termine': [
       'inspection'
@@ -62,7 +62,8 @@ const defaultMaintenanceTypes = Object.values(MaintenanceTypeEnum).map((typeKey,
     [MaintenanceTypeEnum.MANUAL_TRANSMISSION_FLUID]: 'Schaltgetriebeöl wechseln',
     [MaintenanceTypeEnum.DIFFERENTIAL_OIL]: 'Differenzialöl wechseln',
     [MaintenanceTypeEnum.POWER_STEERING_FLUID]: 'Servolenkungsöl wechseln',
-    [MaintenanceTypeEnum.TIRE_CHANGE]: 'Reifen auf Verschleiß prüfen und wechseln',
+    [MaintenanceTypeEnum.TIRE_CHANGE]: 'Saisonaler Reifenwechsel (Sommer/Winter)',
+    [MaintenanceTypeEnum.TIRE_REPLACEMENT]: 'Reifen auf Verschleiß prüfen und erneuern',
     [MaintenanceTypeEnum.BATTERY]: 'Starterbatterie prüfen und wechseln',
     [MaintenanceTypeEnum.WIPER_BLADES]: 'Scheibenwischerblätter wechseln',
     [MaintenanceTypeEnum.INSPECTION]: 'Gesetzlich vorgeschriebene Hauptuntersuchung (HU/TÜV)',

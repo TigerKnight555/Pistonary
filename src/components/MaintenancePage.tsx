@@ -265,7 +265,22 @@ const MaintenancePage: React.FC = () => {
   const loadSelectedCategories = () => {
     const saved = localStorage.getItem(`maintenance-categories-${carId}`);
     if (saved) {
-      setSelectedCategories(JSON.parse(saved));
+      let categories = JSON.parse(saved);
+      
+      // Migration: Ersetze 'engine_oil' und 'oil_filter' durch 'oil_change'
+      const hasEngineOil = categories.includes('engine_oil');
+      const hasOilFilter = categories.includes('oil_filter');
+      
+      if (hasEngineOil || hasOilFilter) {
+        categories = categories.filter((cat: string) => cat !== 'engine_oil' && cat !== 'oil_filter');
+        if (!categories.includes('oil_change')) {
+          categories.push('oil_change');
+        }
+        // Speichere die migrierten Kategorien
+        localStorage.setItem(`maintenance-categories-${carId}`, JSON.stringify(categories));
+      }
+      
+      setSelectedCategories(categories);
     }
   };
 
@@ -346,6 +361,7 @@ const MaintenancePage: React.FC = () => {
       ],
       'Reifen und Elektronik': [
         MaintenanceType.TIRE_CHANGE,
+        MaintenanceType.TIRE_REPLACEMENT,
         MaintenanceType.BATTERY,
         MaintenanceType.WIPER_BLADES
       ],
@@ -355,6 +371,24 @@ const MaintenancePage: React.FC = () => {
     };
 
     return allMaintenanceGroups;
+  };
+
+  // Sortiere Kategorien in der Reihenfolge, wie sie in den Gruppen definiert sind
+  const getSortedCategories = (categories: MaintenanceType[]): MaintenanceType[] => {
+    const groups = getMaintenanceGroups();
+    const order: MaintenanceType[] = [];
+    
+    // Erstelle eine flache Liste aller Kategorien in der definierten Reihenfolge
+    Object.values(groups).forEach(groupCategories => {
+      order.push(...groupCategories);
+    });
+    
+    // Sortiere die übergebenen Kategorien basierend auf der definierten Reihenfolge
+    return categories.sort((a, b) => {
+      const indexA = order.indexOf(a);
+      const indexB = order.indexOf(b);
+      return indexA - indexB;
+    });
   };
 
   // Gruppiere nur die tatsächlich erfassten Wartungen (nur die neueste pro Typ)
@@ -773,7 +807,7 @@ const MaintenancePage: React.FC = () => {
                   gap: 0.5,
                   alignItems: 'flex-start'
                 }}>
-                  {selectedCategories.map((type) => {
+                  {getSortedCategories(selectedCategories).map((type) => {
                     const status = getMaintenanceStatus(type);
                     const chipProps = getChipProps(status);
                     return (

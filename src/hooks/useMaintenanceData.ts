@@ -13,7 +13,7 @@ export const useMaintenanceData = () => {
     refreshData: context.loadData,
     getOverallStatus: () => {
       // Bestimme Gesamtstatus basierend auf allen Wartungstypen
-      const allTypes = ['oil_change', 'inspection', 'air_filter', 'cabin_filter', 'brake_fluid'];
+      const allTypes = ['engine_oil', 'oil_filter', 'inspection', 'air_filter', 'cabin_filter', 'brake_fluid'];
       const statuses = allTypes.map(type => context.getMaintenanceStatus(type as any));
       
       // Priorität: overdue > soon > good > not_recorded
@@ -23,7 +23,7 @@ export const useMaintenanceData = () => {
       return 'not_recorded';
     },
     getAllMaintenanceStatuses: () => {
-      const allTypes = ['oil_change', 'inspection', 'air_filter', 'cabin_filter', 'brake_fluid'];
+      const allTypes = ['engine_oil', 'oil_filter', 'inspection', 'air_filter', 'cabin_filter', 'brake_fluid'];
       return allTypes.map(type => ({
         type,
         status: context.getMaintenanceStatus(type as any)

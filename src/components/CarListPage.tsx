@@ -6,12 +6,10 @@ import {
   Card,
   CardContent,
   CardMedia,
-  Grid,
   Chip,
   IconButton,
   Alert,
-  CircularProgress,
-  Fab
+  CircularProgress
 } from '@mui/material';
 import {
   DirectionsCar as CarIcon,
@@ -138,13 +136,59 @@ export default function CarListPage() {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: 3,
+          justifyContent: { xs: 'center', sm: 'flex-start' }
+        }}>
+          {/* Hinzufügen-Karte */}
+          <Card 
+            sx={{ 
+              height: 420,
+              width: 320, // Feste Breite
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                display: 'flex',
+                flexDirection: 'column',
+                border: '2px dashed',
+                borderColor: 'primary.main',
+                backgroundColor: 'action.hover',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4,
+                  backgroundColor: 'action.selected',
+                }
+              }}
+              onClick={handleAddCar}
+            >
+              <Box
+                sx={{
+                  height: 200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <AddIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+              </Box>
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" component="h2" gutterBottom color="primary">
+                  Neues Fahrzeug hinzufügen
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Klicken Sie hier, um ein neues Fahrzeug zu Ihrer Garage hinzuzufügen.
+                </Typography>
+              </CardContent>
+            </Card>
+          
           {cars.map((car) => (
-            <Grid item xs={12} sm={6} md={4} key={car.id}>
-              <Card 
-                sx={{ 
-                  height: 420,
-                  width: '100%',
+            <Card 
+              key={car.id}
+              sx={{ 
+                height: 420,
+                width: 320, // Feste Breite
                   cursor: 'pointer',
                   transition: 'all 0.2s ease-in-out',
                   display: 'flex',
@@ -229,24 +273,11 @@ export default function CarListPage() {
                   </Box>
                 </CardContent>
               </Card>
-            </Grid>
           ))}
-        </Grid>
+        </Box>
       )}
 
-      {/* Floating Action Button zum Hinzufügen */}
-      <Fab
-        color="primary"
-        aria-label="Fahrzeug hinzufügen"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
-        onClick={handleAddCar}
-      >
-        <AddIcon />
-      </Fab>
+
     </Container>
   );
 }

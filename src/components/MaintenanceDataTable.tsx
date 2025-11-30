@@ -69,7 +69,8 @@ const MaintenanceDataTable: React.FC<MaintenanceDataTableProps> = ({
   const getMaintenanceCategory = (type: MaintenanceType): string => {
     const categoryMap = {
       'Motoröl und Filter': [
-        MaintenanceType.OIL_CHANGE,
+        MaintenanceType.ENGINE_OIL,
+        MaintenanceType.OIL_FILTER,
         MaintenanceType.AIR_FILTER,
         MaintenanceType.CABIN_FILTER,
         MaintenanceType.FUEL_FILTER

@@ -51,7 +51,7 @@ export default function Layout() {
     if (path === '/dashboard' || path === '/') setBottomNavValue(0);
     else if (path === '/maintenance') setBottomNavValue(1);
     else if (path === '/manage') setBottomNavValue(2);
-    else if (path === '/cars') setBottomNavValue(3);
+    else if (path.startsWith('/cars')) setBottomNavValue(3);
   }, [location.pathname]);
 
   const handleDrawerToggle = () => {
@@ -84,11 +84,28 @@ export default function Layout() {
       <List sx={{ 
         flexGrow: 1, 
         overflow: 'hidden',
-        px: 1,
+        px: 0,
         py: 1
       }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/dashboard')}>
+          <ListItemButton 
+            onClick={() => navigate('/dashboard')}
+            selected={location.pathname === '/dashboard' || location.pathname === '/'}
+            sx={{
+              borderRadius: 1,
+              mb: 0.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'primary.contrastText',
+                }
+              }
+            }}
+          >
             <ListItemIcon>
               <DashboardIcon />
             </ListItemIcon>
@@ -96,7 +113,24 @@ export default function Layout() {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/maintenance')}>
+          <ListItemButton 
+            onClick={() => navigate('/maintenance')}
+            selected={location.pathname === '/maintenance'}
+            sx={{
+              borderRadius: 1,
+              mb: 0.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'primary.contrastText',
+                }
+              }
+            }}
+          >
             <ListItemIcon>
               <BuildIcon />
             </ListItemIcon>
@@ -104,7 +138,24 @@ export default function Layout() {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/manage')}>
+          <ListItemButton 
+            onClick={() => navigate('/manage')}
+            selected={location.pathname === '/manage'}
+            sx={{
+              borderRadius: 1,
+              mb: 0.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'primary.contrastText',
+                }
+              }
+            }}
+          >
             <ListItemIcon>
               <ManageAccountsIcon />
             </ListItemIcon>
@@ -112,7 +163,24 @@ export default function Layout() {
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => navigate('/cars')}>
+          <ListItemButton 
+            onClick={() => navigate('/cars')}
+            selected={location.pathname.startsWith('/cars')}
+            sx={{
+              borderRadius: 1,
+              mb: 0.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'primary.contrastText',
+                }
+              }
+            }}
+          >
             <ListItemIcon>
               <DirectionsCarIcon />
             </ListItemIcon>
@@ -142,16 +210,16 @@ export default function Layout() {
           display: { xs: 'none', sm: 'block' }  // Verstecke auf Mobile (xs), zeige ab sm
         }}
       >
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography variant="h6" noWrap component="div">
             Pistonary
           </Typography>
           
-          {/* Settings Menu */}
-          <SettingsMenu />
-          
-          {/* Auth Buttons */}
-          <Box sx={{ ml: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            {/* Settings Menu */}
+            <SettingsMenu />
+            
+            {/* Auth Buttons */}
             {user ? (
               <Button
                 color="inherit"
@@ -184,16 +252,16 @@ export default function Layout() {
           display: { xs: 'block', sm: 'none' }  // Nur auf Mobile sichtbar (xs)
         }}
       >
-        <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography variant="h6" noWrap component="div">
             Pistonary
           </Typography>
           
-          {/* Settings Menu für Mobile */}
-          <SettingsMenu />
-          
-          {/* Auth Buttons für Mobile */}
-          <Box sx={{ ml: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            {/* Settings Menu für Mobile */}
+            <SettingsMenu />
+            
+            {/* Auth Buttons für Mobile */}
             {user ? (
               <IconButton
                 color="inherit"

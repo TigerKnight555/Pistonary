@@ -54,6 +54,12 @@ export class Car {
     @Column({ type: 'text', nullable: true, default: 'km' })
     mileageUnit?: string; // Einheit für Kilometerstand (km oder mi)
 
+    @Column({ type: 'real', nullable: true })
+    taxCosts?: number; // Jährliche Steuerkosten in EUR
+
+    @Column({ type: 'real', nullable: true })
+    insuranceCosts?: number; // Jährliche Versicherungskosten in EUR
+
     @Column({ type: "simple-json", nullable: true })
     additionalInfo?: {
         vin?: string;

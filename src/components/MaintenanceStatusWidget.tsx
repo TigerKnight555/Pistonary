@@ -21,6 +21,46 @@ import { MaintenanceType, MaintenanceTypeLabels } from '../database/entities/Mai
 import { useMaintenanceData, type MaintenanceStatus } from '../hooks/useMaintenanceData';
 import { useAuth } from '../contexts/AuthContext';
 
+// Sortierreihenfolge der Kategorien (wie auf der Wartungsseite)
+const MAINTENANCE_ORDER: MaintenanceType[] = [
+  // Motoröl und Filter
+  MaintenanceType.OIL_CHANGE,
+  MaintenanceType.AIR_FILTER,
+  MaintenanceType.CABIN_FILTER,
+  MaintenanceType.FUEL_FILTER,
+  // Zündung
+  MaintenanceType.SPARK_PLUGS,
+  MaintenanceType.GLOW_PLUGS,
+  // Riemen
+  MaintenanceType.TIMING_BELT,
+  MaintenanceType.DRIVE_BELT,
+  // Bremsen
+  MaintenanceType.BRAKE_PADS,
+  MaintenanceType.BRAKE_DISCS,
+  MaintenanceType.BRAKE_FLUID,
+  // Flüssigkeiten
+  MaintenanceType.COOLANT,
+  MaintenanceType.AUTOMATIC_TRANSMISSION_FLUID,
+  MaintenanceType.MANUAL_TRANSMISSION_FLUID,
+  MaintenanceType.DIFFERENTIAL_OIL,
+  MaintenanceType.POWER_STEERING_FLUID,
+  // Reifen und Elektronik
+  MaintenanceType.TIRE_CHANGE,
+  MaintenanceType.TIRE_REPLACEMENT,
+  MaintenanceType.BATTERY,
+  MaintenanceType.WIPER_BLADES,
+  // Behördliche Termine
+  MaintenanceType.INSPECTION
+];
+
+const getSortedCategories = (categories: MaintenanceType[]): MaintenanceType[] => {
+  return categories.sort((a, b) => {
+    const indexA = MAINTENANCE_ORDER.indexOf(a);
+    const indexB = MAINTENANCE_ORDER.indexOf(b);
+    return indexA - indexB;
+  });
+};
+
 export default function MaintenanceStatusWidget() {
   const [expanded, setExpanded] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<MaintenanceType[]>([]);
@@ -40,7 +80,21 @@ export default function MaintenanceStatusWidget() {
     
     const saved = localStorage.getItem(`maintenance-categories-${selectedCarId}`);
     if (saved) {
-      const categories = JSON.parse(saved);
+      let categories = JSON.parse(saved);
+      
+      // Migration: Ersetze 'engine_oil' und 'oil_filter' durch 'oil_change'
+      const hasEngineOil = categories.includes('engine_oil');
+      const hasOilFilter = categories.includes('oil_filter');
+      
+      if (hasEngineOil || hasOilFilter) {
+        categories = categories.filter((cat: string) => cat !== 'engine_oil' && cat !== 'oil_filter');
+        if (!categories.includes('oil_change')) {
+          categories.push('oil_change');
+        }
+        // Speichere die migrierten Kategorien
+        localStorage.setItem(`maintenance-categories-${selectedCarId}`, JSON.stringify(categories));
+      }
+      
       console.log('MaintenanceStatusWidget - Kategorien geladen:', categories);
       setSelectedCategories(categories);
     }
@@ -98,7 +152,7 @@ export default function MaintenanceStatusWidget() {
       default:
         return {
           icon: <BuildIcon />,
-          color: '#1976d2',
+          color: theme.palette.primary.main,
           text: selectedCategories.length === 0 ? 'Wartungskategorien auswählen' : 'Wartungen nicht erfasst',
           bgColor: 'transparent'
         };
@@ -215,7 +269,7 @@ export default function MaintenanceStatusWidget() {
                   gap: isMobile ? 0.5 : 1,
                   alignItems: 'flex-start'
                 }}>
-                  {selectedCategories.map((type) => {
+                  {getSortedCategories(selectedCategories).map((type) => {
                     const status = getMaintenanceStatus(type);
                     
                     // Direkte Chip-Implementierung mit einfachen Farben

@@ -56,7 +56,8 @@ export default function MaintenanceCategorySelectionDialog({
     if (fuelType.includes('elektro')) {
       // Elektrofahrzeuge: Keine Motoröl, Zündkerzen, Glühkerzen, Filter
       relevantTypes = relevantTypes.filter(type => ![
-        MaintenanceType.OIL_CHANGE,
+        MaintenanceType.ENGINE_OIL,
+        MaintenanceType.OIL_FILTER,
         MaintenanceType.SPARK_PLUGS,
         MaintenanceType.GLOW_PLUGS,
         MaintenanceType.AIR_FILTER,
@@ -120,6 +121,7 @@ export default function MaintenanceCategorySelectionDialog({
     ],
     'Reifen und Elektronik': [
       MaintenanceType.TIRE_CHANGE,
+      MaintenanceType.TIRE_REPLACEMENT,
       MaintenanceType.BATTERY,
       MaintenanceType.WIPER_BLADES
     ],

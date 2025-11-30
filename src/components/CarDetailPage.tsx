@@ -24,7 +24,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -49,9 +51,10 @@ import type { PowerUnitType } from '../utils/powerConversion';
 import { convertPowerValue } from '../utils/powerConversion';
 import type { DistanceUnitType } from '../utils/distanceConversion';
 import { convertDistanceValue } from '../utils/distanceConversion';
-import CarSettings from './CarSettings';
 import MileageInput from './MileageInput';
 import PowerInput from './PowerInput';
+import CarSettings from './CarSettings';
+import OtherCosts from './OtherCosts';
 
 // Temporäre Standard-Kategorien für Kompatibilität (wird durch API-Aufruf ersetzt)
 const defaultMaintenanceCategories = [
@@ -172,6 +175,8 @@ const transmissionTypes = [
 ];
 
 export default function CarDetailPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -216,6 +221,23 @@ export default function CarDetailPage() {
   // Legacy für Kompatibilität mit alten Daten (wird entfernt nach Migration)
   const [maintenanceCategories, setMaintenanceCategories] = useState<MaintenanceCategory[]>([]);
   
+  // Ursprüngliche Werte für Change-Detection
+  const [originalValues, setOriginalValues] = useState({
+    manufacturer: '',
+    model: '',
+    year: new Date().getFullYear(),
+    licensePlate: '',
+    fuel: 'Benzin',
+    power: 0,
+    powerUnit: 'PS' as PowerUnitType,
+    transmission: 'Manuell',
+    engineSize: 0,
+    mileage: 0,
+    mileageUnit: 'km' as DistanceUnitType,
+    notes: '',
+    image: ''
+  });
+  
   const { carId } = useParams<{ carId: string }>();
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -236,6 +258,25 @@ export default function CarDetailPage() {
         setMileage(0);
         setNotes('');
         setImage('');
+        
+        // Setze ursprüngliche Werte für neue Autos (alle leer)
+        setOriginalValues({
+          manufacturer: '',
+          model: '',
+          year: new Date().getFullYear(),
+          licensePlate: '',
+          fuel: 'Benzin',
+          power: 0,
+          powerUnit: 'PS',
+          transmission: 'Manuell',
+          engineSize: 0,
+          mileage: 0,
+          mileageUnit: 'km',
+          notes: '',
+          image: ''
+        });
+        
+        setHasChanges(false);
       }
       setLoading(false);
       return;
@@ -313,6 +354,26 @@ export default function CarDetailPage() {
       setImageFile(null);
       setImagePreview(null);
       
+      // Setze ursprüngliche Werte für Change-Detection
+      setOriginalValues({
+        manufacturer: data.manufacturer || '',
+        model: data.model || '',
+        year: data.year || new Date().getFullYear(),
+        licensePlate: data.licensePlate || '',
+        fuel: data.fuel || 'Benzin',
+        power: data.power || 0,
+        powerUnit: (data.powerUnit as PowerUnitType) || 'PS',
+        transmission: data.transmission || 'Manuell',
+        engineSize: data.engineSize || 0,
+        mileage: data.mileage || 0,
+        mileageUnit: (data.mileageUnit as DistanceUnitType) || 'km',
+        notes: data.notes || '',
+        image: data.image || ''
+      });
+      
+      // Reset hasChanges nach dem Laden
+      setHasChanges(false);
+      
     } catch (err) {
       console.error('Error loading car:', err);
       setError(err instanceof Error ? err.message : 'Fehler beim Laden des Fahrzeugs');
@@ -364,10 +425,56 @@ export default function CarDetailPage() {
       createDefaultIntervals();
     }
   }, [maintenanceTypes]);
+  
+  // Effect für automatische Change-Detection
+  useEffect(() => {
+    // Nur ausführen, wenn originalValues initialisiert sind
+    // Für neue Autos: originalValues sind leer, aber das ist okay
+    // Für bestehende Autos: warten bis originalValues geladen sind
+    if (isNewCar || originalValues.manufacturer !== '' || originalValues.model !== '') {
+      checkForChanges();
+    }
+  }, [manufacturer, model, year, licensePlate, fuel, power, powerUnit, transmission, engineSize, mileage, mileageUnit, notes, image, imagePreview]);
 
-  const handleFieldChange = () => {
-    console.log('handleFieldChange called - setting hasChanges to true');
-    setHasChanges(true);
+  const checkForChanges = () => {
+    // Vergleiche aktuelle Werte mit ursprünglichen Werten
+    const currentValues = {
+      manufacturer,
+      model,
+      year,
+      licensePlate,
+      fuel,
+      power,
+      powerUnit,
+      transmission,
+      engineSize,
+      mileage,
+      mileageUnit,
+      notes,
+      image: imagePreview || image || '' // Berücksichtige sowohl uploaded files als auch URLs
+    };
+    
+    // Prüfe, ob sich etwas geändert hat
+    const hasRealChanges = 
+      currentValues.manufacturer !== originalValues.manufacturer ||
+      currentValues.model !== originalValues.model ||
+      currentValues.year !== originalValues.year ||
+      currentValues.licensePlate !== originalValues.licensePlate ||
+      currentValues.fuel !== originalValues.fuel ||
+      currentValues.power !== originalValues.power ||
+      currentValues.powerUnit !== originalValues.powerUnit ||
+      currentValues.transmission !== originalValues.transmission ||
+      currentValues.engineSize !== originalValues.engineSize ||
+      currentValues.mileage !== originalValues.mileage ||
+      currentValues.mileageUnit !== originalValues.mileageUnit ||
+      currentValues.notes !== originalValues.notes ||
+      (currentValues.image !== originalValues.image && !imagePreview) || // Nur bei URL-Änderungen, nicht bei File-Uploads
+      (imagePreview !== null); // File wurde hochgeladen
+    
+    console.log('checkForChanges - hasRealChanges:', hasRealChanges);
+    console.log('Current vs Original:', currentValues, originalValues);
+    
+    setHasChanges(hasRealChanges);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,7 +487,7 @@ export default function CarDetailPage() {
         const result = e.target?.result as string;
         setImagePreview(result);
         setImage(''); // Leere URL-Feld wenn Datei hochgeladen wird
-        handleFieldChange();
+        checkForChanges();
       };
       reader.readAsDataURL(file);
     }
@@ -390,7 +497,7 @@ export default function CarDetailPage() {
     setImage('');
     setImageFile(null);
     setImagePreview(null);
-    handleFieldChange();
+    checkForChanges();
   };
 
   const getCurrentImageSrc = () => {
@@ -417,7 +524,7 @@ export default function CarDetailPage() {
       setNewCategoryMileageInterval(15000);
       setNewCategoryDescription('');
       setIsAddingCategory(false);
-      handleFieldChange();
+      // entfernt - Wartungsintervalle werden automatisch gespeichert
     }
   };
 
@@ -428,17 +535,17 @@ export default function CarDetailPage() {
       )
     );
     setEditingCategoryId(null);
-    handleFieldChange();
+    // entfernt - Wartungsintervalle werden automatisch gespeichert
   };
 
   const handleDeleteCategory = (id: number) => {
     setMaintenanceCategories(categories => categories.filter(cat => cat.id !== id));
-    handleFieldChange();
+    // entfernt - Wartungsintervalle werden automatisch gespeichert
   };
 
   const resetToStandardCategories = () => {
     setMaintenanceCategories(defaultMaintenanceCategories);
-    handleFieldChange();
+    // entfernt - Wartungsintervalle werden automatisch gespeichert
   };
 
   // Helper function to format interval display
@@ -476,7 +583,7 @@ export default function CarDetailPage() {
   const handleSaveAllChanges = () => {
     setMaintenanceCategories(tempMaintenanceCategories);
     setIsEditingAll(false);
-    handleFieldChange();
+    // entfernt - Wartungsintervalle werden automatisch gespeichert
   };
 
   const handleCancelAllChanges = () => {
@@ -708,11 +815,14 @@ export default function CarDetailPage() {
         <Tabs 
           value={activeTab} 
           onChange={(_, newValue) => setActiveTab(newValue)}
-          variant="fullWidth"
+          variant={isMobile ? "scrollable" : "fullWidth"}
+          scrollButtons={isMobile ? "auto" : false}
+          allowScrollButtonsMobile
         >
           <Tab label="Details" />
+          <Tab label="Fixkosten" disabled={isNewCar} />
+          <Tab label="Sonstige Kosten" disabled={isNewCar} />
           <Tab label="Wartungsintervalle" />
-          <Tab label="Einstellungen" />
         </Tabs>
       </Card>
 
@@ -728,12 +838,18 @@ export default function CarDetailPage() {
               </Typography>
               
               {/* Datei-Upload Button */}
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ 
+                mb: 2,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: isMobile ? 1 : 0
+              }}>
                 <Button
                   component="label"
                   variant="outlined"
                   startIcon={<UploadIcon />}
-                  sx={{ mr: 2 }}
+                  sx={{ mr: isMobile ? 0 : 2 }}
+                  fullWidth={isMobile}
                 >
                   Bild hochladen
                   <input
@@ -750,6 +866,7 @@ export default function CarDetailPage() {
                     color="error"
                     startIcon={<RemoveIcon />}
                     onClick={removeImage}
+                    fullWidth={isMobile}
                   >
                     Bild entfernen
                   </Button>
@@ -791,14 +908,17 @@ export default function CarDetailPage() {
             </Typography>
 
             {/* Hersteller und Modell */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2 
+            }}>
               <TextField
                 fullWidth
                 label="Hersteller"
                 value={manufacturer}
                 onChange={(e) => {
                   setManufacturer(e.target.value);
-                  handleFieldChange();
                 }}
                 required
               />
@@ -808,21 +928,23 @@ export default function CarDetailPage() {
                 value={model}
                 onChange={(e) => {
                   setModel(e.target.value);
-                  handleFieldChange();
                 }}
                 required
               />
             </Box>
 
             {/* Kennzeichen und Baujahr */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2 
+            }}>
               <TextField
                 fullWidth
                 label="Kennzeichen"
                 value={licensePlate}
                 onChange={(e) => {
                   setLicensePlate(e.target.value);
-                  handleFieldChange();
                 }}
                 required
               />
@@ -833,14 +955,17 @@ export default function CarDetailPage() {
                 value={year}
                 onChange={(e) => {
                   setYear(parseInt(e.target.value) || new Date().getFullYear());
-                  handleFieldChange();
                 }}
                 required
               />
             </Box>
 
             {/* Kraftstoff und Getriebe */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2 
+            }}>
               <TextField
                 fullWidth
                 select
@@ -848,7 +973,7 @@ export default function CarDetailPage() {
                 value={fuel}
                 onChange={(e) => {
                   setFuel(e.target.value);
-                  handleFieldChange();
+
                 }}
                 required
                 SelectProps={{
@@ -883,7 +1008,7 @@ export default function CarDetailPage() {
                 value={transmission}
                 onChange={(e) => {
                   setTransmission(e.target.value);
-                  handleFieldChange();
+
                 }}
                 required
                 SelectProps={{
@@ -922,23 +1047,28 @@ export default function CarDetailPage() {
               value={engineSize}
               onChange={(e) => {
                 setEngineSize(parseInt(e.target.value) || 0);
-                handleFieldChange();
+
               }}
             />
 
             {/* Leistung und Kilometerstand */}
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Box sx={{ flex: 1 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2, 
+              alignItems: 'center' 
+            }}>
+              <Box sx={{ flex: 1, width: '100%' }}>
                 <PowerInput
                   value={power}
                   unit={powerUnit}
                   onValueChange={(value) => {
                     setPower(parseInt(value) || 0);
-                    handleFieldChange();
+
                   }}
                   onUnitChange={(unit) => {
                     setPowerUnit(unit);
-                    handleFieldChange();
+
                   }}
                   required
                   clearOnUnitChange={false}
@@ -948,17 +1078,17 @@ export default function CarDetailPage() {
                   }}
                 />
               </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 1, width: '100%' }}>
                 <MileageInput
                   value={mileage}
                   unit={mileageUnit}
                   onValueChange={(value) => {
                     setMileage(parseInt(value) || 0);
-                    handleFieldChange();
+
                   }}
                   onUnitChange={(unit) => {
                     setMileageUnit(unit);
-                    handleFieldChange();
+
                   }}
                   clearOnUnitChange={false}
                   showConversion={true}
@@ -978,19 +1108,25 @@ export default function CarDetailPage() {
               value={notes}
               onChange={(e) => {
                 setNotes(e.target.value);
-                handleFieldChange();
+
               }}
               helperText="Zusätzliche Informationen zum Fahrzeug"
             />
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, pt: 3 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 2, 
+              pt: 3 
+            }}>
               <Button
                 variant="contained"
                 onClick={handleSave}
                 disabled={saving || (!hasChanges && !isNewCar)}
                 startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
                 size="large"
+                fullWidth={isMobile}
               >
                 {saving ? 'Speichere...' : (isNewCar ? 'Fahrzeug hinzufügen' : 'Änderungen speichern')}
               </Button>
@@ -1000,6 +1136,7 @@ export default function CarDetailPage() {
                 onClick={() => navigate('/cars')}
                 disabled={saving}
                 size="large"
+                fullWidth={isMobile}
               >
                 {isNewCar ? 'Abbrechen' : 'Zurück zur Übersicht'}
               </Button>
@@ -1008,10 +1145,11 @@ export default function CarDetailPage() {
                 <Button
                   variant="outlined"
                   color="error"
-                  startIcon={<DeleteIcon />}
                   onClick={() => setDeleteDialogOpen(true)}
                   disabled={saving}
+                  startIcon={<DeleteIcon />}
                   size="large"
+                  fullWidth={isMobile}
                 >
                   Löschen
                 </Button>
@@ -1029,8 +1167,18 @@ export default function CarDetailPage() {
       </Card>
       )}
 
-      {/* Wartungsintervalle Tab */}
+      {/* Tab 1: Fixkosten */}
       {activeTab === 1 && (
+        <CarSettings showOnlyFixedCosts={true} />
+      )}
+
+      {/* Tab 2: Sonstige Kosten */}
+      {activeTab === 2 && carId && (
+        <OtherCosts carId={carId} />
+      )}
+
+      {/* Tab 3: Wartungsintervalle */}
+      {activeTab === 3 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -1076,7 +1224,7 @@ export default function CarDetailPage() {
                     // Auto-Save der Toggle-Einstellungen
                     await saveToggleSettings(isUsingStandardIntervals, !isUsingStandardIntervals);
                     
-                    handleFieldChange();
+                    // entfernt - Toggles werden automatisch gespeichert
                   }}
                 />
               }
@@ -1110,16 +1258,28 @@ export default function CarDetailPage() {
               </Box>
             ) : (
               <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: isMobile ? 'column' : 'row',
+                  justifyContent: 'space-between', 
+                  alignItems: isMobile ? 'stretch' : 'center', 
+                  mb: 2,
+                  gap: isMobile ? 2 : 0
+                }}>
                   <Typography variant="subtitle2">
                     Benutzerdefinierte Wartungsintervalle
                   </Typography>
-                  <Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? 1 : 0
+                  }}>
                     <Button
                       size="small"
                       onClick={resetToStandardCategories}
-                      sx={{ mr: 1 }}
+                      sx={{ mr: isMobile ? 0 : 1 }}
                       disabled={isEditingAll}
+                      fullWidth={isMobile}
                     >
                       Standard wiederherstellen
                     </Button>
@@ -1128,8 +1288,9 @@ export default function CarDetailPage() {
                       size="small"
                       startIcon={<EditAllIcon />}
                       onClick={handleStartEditAll}
-                      sx={{ mr: 1 }}
+                      sx={{ mr: isMobile ? 0 : 1 }}
                       disabled={isAddingCategory || editingCategoryId !== null}
+                      fullWidth={isMobile}
                     >
                       Alle bearbeiten
                     </Button>
@@ -1139,6 +1300,7 @@ export default function CarDetailPage() {
                       startIcon={<AddIcon />}
                       onClick={() => setIsAddingCategory(true)}
                       disabled={isAddingCategory || isEditingAll}
+                      fullWidth={isMobile}
                     >
                       Kategorie hinzufügen
                     </Button>
@@ -1345,7 +1507,7 @@ export default function CarDetailPage() {
                               
                               setMaintenanceIntervals(updatedIntervals);
                               setEditingCategoryId(null);
-                              handleFieldChange();
+                              // entfernt - Wartungsintervalle werden automatisch gespeichert
                               
                               // Auto-Save der Wartungsintervalle
                               await saveMaintenanceIntervals(updatedIntervals);
@@ -1399,7 +1561,7 @@ export default function CarDetailPage() {
                                       );
                                       
                                       setMaintenanceIntervals(updatedIntervals);
-                                      handleFieldChange();
+                                      // entfernt - Wartungsintervalle werden automatisch gespeichert
                                       
                                       // Auto-Save der Wartungsintervalle
                                       await saveMaintenanceIntervals(updatedIntervals);
@@ -1429,28 +1591,7 @@ export default function CarDetailPage() {
         </Card>
       )}
 
-      {/* Einstellungen Tab */}
-      {activeTab === 2 && !isNewCar && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Fahrzeug-Einstellungen
-            </Typography>
-            <CarSettings />
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Neue Fahrzeuge haben keine Einstellungen */}
-      {activeTab === 2 && isNewCar && (
-        <Card>
-          <CardContent>
-            <Alert severity="info">
-              Fahrzeug-Einstellungen sind erst nach dem Speichern des Fahrzeugs verfügbar.
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog

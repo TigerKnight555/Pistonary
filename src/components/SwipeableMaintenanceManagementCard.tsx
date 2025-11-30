@@ -50,12 +50,14 @@ interface SwipeableMaintenanceManagementCardProps {
     maintenance: MaintenanceData;
     onEdit: (maintenance: MaintenanceData) => void;
     onDelete: (maintenance: MaintenanceData) => void;
+    isMobile?: boolean;
 }
 
 const SwipeableMaintenanceManagementCard: React.FC<SwipeableMaintenanceManagementCardProps> = ({ 
     maintenance, 
     onEdit, 
-    onDelete 
+    onDelete,
+    isMobile = true 
 }) => {
     const [translateX, setTranslateX] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -65,40 +67,39 @@ const SwipeableMaintenanceManagementCard: React.FC<SwipeableMaintenanceManagemen
     const startXRef = useRef(0);
     const currentXRef = useRef(0);
 
-    const SWIPE_THRESHOLD = -80; // Schwellenwert für Delete-Action
-    const DELETE_THRESHOLD = -120; // Schwellenwert für automatisches Löschen
+    const DELETE_THRESHOLD = -50; // Schwellenwert für automatisches Öffnen des Delete-Dialogs
 
-    // Touch Events
+    // Touch Events (nur im Mobile-View aktiv)
     const handleTouchStart = (e: React.TouchEvent) => {
+        if (!isMobile) return;
         setIsDragging(true);
         startXRef.current = e.touches[0].clientX;
         currentXRef.current = translateX;
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        if (!isDragging) return;
+        if (!isMobile || !isDragging) return;
         
         const currentX = e.touches[0].clientX;
         const diff = currentX - startXRef.current;
         const newTranslateX = currentXRef.current + diff;
         
-        // Nur nach links swipen erlauben (negative Werte)
-        if (newTranslateX <= 0) {
+        // Nur nach links swipen erlauben, maximal bis zur Delete-Button Breite (-120px)
+        if (newTranslateX <= 0 && newTranslateX >= -120) {
             setTranslateX(newTranslateX);
-            setShowDeleteAction(newTranslateX <= SWIPE_THRESHOLD);
+            setShowDeleteAction(newTranslateX <= DELETE_THRESHOLD);
         }
     };
 
     const handleTouchEnd = () => {
-        if (!isDragging) return;
+        if (!isMobile || !isDragging) return;
         setIsDragging(false);
 
         if (translateX <= DELETE_THRESHOLD) {
-            // Automatisches Löschen bei zu weit geswipt
+            // Genug geswipt - Delete-Dialog automatisch öffnen
             setShowDeleteDialog(true);
-        } else if (translateX <= SWIPE_THRESHOLD) {
-            // Delete-Action anzeigen
-            setTranslateX(SWIPE_THRESHOLD);
+            // Karte bleibt weiter links eingelockt
+            setTranslateX(-80);
             setShowDeleteAction(true);
         } else {
             // Zurück zur ursprünglichen Position
@@ -107,29 +108,43 @@ const SwipeableMaintenanceManagementCard: React.FC<SwipeableMaintenanceManagemen
         }
     };
 
-    // Mouse Events (für Desktop-Testing)
+    // Mouse Events (nur im Mobile-View für Desktop-Testing)
     const handleMouseDown = (e: React.MouseEvent) => {
+        if (!isMobile) return;
         setIsDragging(true);
         startXRef.current = e.clientX;
         currentXRef.current = translateX;
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging) return;
+        if (!isMobile || !isDragging) return;
         
         const currentX = e.clientX;
         const diff = currentX - startXRef.current;
         const newTranslateX = currentXRef.current + diff;
         
-        if (newTranslateX <= 0) {
+        // Nur nach links swipen erlauben, maximal bis zur Delete-Button Breite (-120px)
+        if (newTranslateX <= 0 && newTranslateX >= -120) {
             setTranslateX(newTranslateX);
-            setShowDeleteAction(newTranslateX <= SWIPE_THRESHOLD);
+            setShowDeleteAction(newTranslateX <= DELETE_THRESHOLD);
         }
     };
 
     const handleMouseUp = () => {
-        if (!isDragging) return;
-        handleTouchEnd();
+        if (!isMobile || !isDragging) return;
+        setIsDragging(false);
+
+        if (translateX <= DELETE_THRESHOLD) {
+            // Genug geswipt - Delete-Dialog automatisch öffnen
+            setShowDeleteDialog(true);
+            // Karte bleibt weiter links eingelockt
+            setTranslateX(-80);
+            setShowDeleteAction(true);
+        } else {
+            // Zurück zur ursprünglichen Position
+            setTranslateX(0);
+            setShowDeleteAction(false);
+        }
     };
 
     // Reset position on escape
@@ -177,58 +192,73 @@ const SwipeableMaintenanceManagementCard: React.FC<SwipeableMaintenanceManagemen
                     mb: 2
                 }}
             >
-                {/* Delete Action Background */}
-                <Box
-                    sx={{
-                        position: 'absolute',
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 120,
-                        backgroundColor: '#d32f2f',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: showDeleteAction ? 1 : 0,
-                        transition: 'opacity 0.2s ease'
-                    }}
-                >
-                    <IconButton
-                        onClick={handleDeleteClick}
-                        sx={{ color: 'white' }}
+                {/* Delete Action Background - nur im Mobile-View */}
+                {isMobile && (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 120,
+                            backgroundColor: '#d32f2f',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 0,
+                            pointerEvents: showDeleteAction ? 'auto' : 'none',
+                            borderRadius: 1
+                        }}
                     >
-                        <DeleteIcon />
-                    </IconButton>
-                </Box>
+                        <IconButton
+                            onClick={handleDeleteClick}
+                            onTouchEnd={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteClick();
+                            }}
+                            sx={{ 
+                                color: 'white',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                }
+                            }}
+                        >
+                            <DeleteIcon />
+                        </IconButton>
+                    </Box>
+                )}
 
-                {/* Main Card */}
+                {/* Main Card - über dem Delete Button */}
                 <Card 
                     ref={cardRef}
                     sx={{ 
                         width: '100%',
                         maxWidth: '100%',
                         overflow: 'hidden',
-                        transform: `translateX(${translateX}px)`,
+                        transform: isMobile ? `translateX(${translateX}px)` : 'none',
                         transition: isDragging ? 'none' : 'transform 0.3s ease',
                         cursor: 'pointer',
                         '&:hover': !isDragging ? { 
                             boxShadow: 3,
-                            transform: `translateX(${translateX}px) translateY(-2px)`
+                            transform: isMobile ? `translateX(${translateX}px) translateY(-2px)` : 'translateY(-2px)'
                         } : {},
                         '&:active': !isDragging ? {
-                            transform: `translateX(${translateX}px) translateY(0) scale(0.98)`,
+                            transform: isMobile ? `translateX(${translateX}px) translateY(0) scale(0.98)` : 'translateY(0) scale(0.98)',
                             boxShadow: 1
                         } : {},
                         userSelect: 'none',
                         position: 'relative',
-                        zIndex: 1
+                        zIndex: 1,
+                        backgroundColor: 'background.paper',
+                        borderRadius: 1
                     }}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
+                    onTouchStart={isMobile ? handleTouchStart : undefined}
+                    onTouchMove={isMobile ? handleTouchMove : undefined}
+                    onTouchEnd={isMobile ? handleTouchEnd : undefined}
+                    onMouseDown={isMobile ? handleMouseDown : undefined}
+                    onMouseMove={isMobile ? handleMouseMove : undefined}
+                    onMouseUp={isMobile ? handleMouseUp : undefined}
                 >
                     <CardActionArea 
                         onClick={handleCardClick}
@@ -252,9 +282,29 @@ const SwipeableMaintenanceManagementCard: React.FC<SwipeableMaintenanceManagemen
                                         {MaintenanceTypeLabels[maintenance.type as keyof typeof MaintenanceTypeLabels] || maintenance.type}
                                     </Typography>
                                 </Box>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                    {dayjs(maintenance.createdAt).format('DD.MM.YYYY')}
-                                </Typography>
+                                <Stack direction="row" alignItems="center" gap={1}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                        {dayjs(maintenance.createdAt).format('DD.MM.YYYY')}
+                                    </Typography>
+                                    {/* Delete Icon nur im Desktop-View */}
+                                    {!isMobile && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteClick();
+                                            }}
+                                            sx={{ 
+                                                color: 'error.main',
+                                                '&:hover': {
+                                                    backgroundColor: 'action.hover'
+                                                }
+                                            }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
+                                </Stack>
                             </Stack>
 
                             {/* Beschreibung falls vorhanden */}

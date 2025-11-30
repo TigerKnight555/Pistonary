@@ -1,69 +1,162 @@
-# React + TypeScript + Vite
+# 🚗 Pistonary - Deine Fahrzeugverwaltung & Tankbuch-App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Eine moderne Webanwendung, um deine Fahrzeuge, Tankungen, Wartungen und Kosten zu verwalten. Mit Pistonary behältst du den kompletten Überblick über dein Auto - egal ob ein Fahrzeug oder mehrere.
 
-Currently, two official plugins are available:
+## 📋 Worum geht's?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Pistonary ist deine digitale Garage! Hier kannst du:
+- **Deine Autos verwalten** - Mehrere Fahrzeuge anlegen und easy zwischen ihnen wechseln
+- **Tankungen tracken** - Jede Tankung erfassen und sehen, was dich dein Auto wirklich kostet
+- **Wartungen planen** - Nie wieder eine Inspektion vergessen
+- **Kosten im Blick behalten** - Von Sprit über Wartung bis zu Steuern - alles an einem Ort
+- **Dein eigenes Design** - Stelle die Farben nach deinem Geschmack ein
 
-## Expanding the ESLint configuration
+## ✨ Was kann Pistonary?
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 🚙 Fahrzeugverwaltung
+- Lege so viele Autos an, wie du willst
+- Speichere alle wichtigen Infos: Fotos, Hersteller, Modell, PS
+- Wische auf dem Handy zwischen deinen Autos hin und her
+- Trage Steuern und Versicherung ein
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### ⛽ Tankbuch - Endlich wissen, was Sprit wirklich kostet
+- Tankungen eintragen: Datum, Liter, Preis, Kilometerstand
+- Pistonary rechnet automatisch aus:
+  - Wie viel verbraucht dein Auto? (L/100km)
+  - Was kostet dich jeder Kilometer?
+  - Wie entwickelt sich der Spritpreis?
+- Schicke Charts zeigen dir alles auf einen Blick
+- Verschiedene Ansichten: Verbrauch, Kosten, Kilometerstand, und mehr
+- Filter nach Zeitraum (letzter Monat, Quartal, Jahr, alles)
+- Tankungen löschen per Wisch-Geste
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+### 🔧 Wartungsverwaltung - Vergiss nie wieder was
+- 23 verschiedene Wartungsarten (Ölwechsel, Bremsen, Filter, etc.)
+- Eigene Intervalle für jedes Auto einstellen
+- Erinnerung nach Kilometern oder Zeit
+- Sofort sehen: Was ist fällig? Was läuft noch?
+- Wartungshistorie mit allen Kosten
+- Verschiedene Ölsorten zur Auswahl (0W-20, 5W-30, etc.)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 💰 Kostenkontrolle - Wo geht das Geld hin?
+- **Spritkosten**: Werden aus deinen Tankungen berechnet
+- **Wartungskosten**: Alle Reparaturen und Inspektionen
+- **Sonstige Ausgaben**: Zubehör, Umbauten, was auch immer
+- **Fixkosten**: Steuern und Versicherung pro Jahr
+- Wähle deinen Zeitraum und sieh, was dich dein Auto monatlich kostet
+- Farbige Übersicht zeigt dir sofort, wo die Kohle hingeht
+
+### 📊 Übersichten & Stats
+- Die letzten Tankungen auf einen Blick
+- Wartungsstatus zeigt dir, was bald ansteht
+- Gesamtkosten aufklappbar mit allen Details
+- Charts kannst du anpassen - zeig nur was dich interessiert
+- Sieht auf Handy und Desktop gut aus
+
+### 🎨 Mach's zu deinem
+- Dark Mode ist Standard (schont die Augen)
+- Wähle deine Lieblingsfarben für die App
+- Fertige Farbschemata oder ganz individuell
+- Wichtige Widgets bleiben farblich gleich (besser lesbar)
+
+## 🛠️ Was steckt drin?
+
+**Frontend**
+- React 18 mit TypeScript
+- Material-UI für schöne Komponenten
+- Recharts für die Diagramme
+- Vite für schnelle Entwicklung
+
+**Backend**
+- Express API
+- SQLite Datenbank
+- TypeORM
+- JWT-Login
+
+## 🚀 Los geht's
+
+```bash
+# Projekt runterladen
+git clone https://github.com/TigerKnight555/Pistonary.git
+cd Pistonary
+
+# Alles installieren
+npm install
+
+# Frontend starten
+npm run dev
+
+# Backend starten (in neuem Terminal)
+npm run server
+
+# Production Build
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📱 Handy-optimiert
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Funktioniert super auf dem Smartphone
+- Wisch-Gesten zum Navigieren und Löschen
+- Touch-optimierte Buttons
+- Passt sich an jeden Bildschirm an
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🎯 Für wen ist das?
+
+- **Autobesitzer**: Behalte den Überblick über dein Auto
+- **Familien**: Verwalte alle Familienautos an einem Ort
+- **Oldtimer-Fans**: Dokumentiere jede Wartung penibel
+- **Sparfüchse**: Sieh genau, wo du sparen kannst
+- **Kleine Firmen**: Für überschaubare Fuhrparks
+
+## 👤 Über das Projekt & den Entwickler
+
+Hi! Ich bin Software-Entwickler und wollte mal testen, wie weit man mit **Vibe Coding** kommt - also einfach drauf los coden und schauen was passiert. Pistonary ist das Ergebnis dieses Experiments! 🚀
+
+Das komplette Projekt wurde mit **GitHub Copilot Agent** entwickelt, zuerst mit Claude Sonnet 4, später mit 4.5. Klar stecken trotzdem einige Stunden Arbeit drin, aber es war super spannend zu sehen, wie viel man mit KI-Unterstützung in kurzer Zeit aufbauen kann.
+
+### 🤝 Mitmachen & Unterstützen
+
+- **Features & Bugs**: Hast du Ideen für neue Features? Bugs gefunden? Her damit! Eröffne gerne ein Issue oder schick einen Pull Request.
+- **Feedback**: Jede Rückmeldung hilft, die App besser zu machen.
+- **Unterstützen**: Das Projekt ist komplett kostenlos und Open Source. Wenn du meine Arbeit wertschätzt und mich unterstützen möchtest, freue ich mich riesig über einen Kaffee! ☕
+  
+  [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/knvt)
+
+### 🏠 Installation auf dem Homeserver
+
+Pistonary kannst du ganz einfach auf deinem eigenen Server zuhause installieren und nutzen. Ein paar Dinge, die du wissen solltest:
+
+**Netzwerk-Zugriff:**
+- Die App läuft lokal auf deinem Server
+- Um sie zu nutzen, musst du im gleichen Netzwerk sein wie der Server
+- **Tipp für unterwegs**: Richte einen VPN ins Heimnetz ein! Mit **WireGuard** über die FritzBox geht das super einfach und du hast von überall Zugriff auf deine Daten.
+
+**Installation:**
+```bash
+# Projekt runterladen
+git clone https://github.com/TigerKnight555/Pistonary.git
+cd Pistonary
+
+# Alles installieren
+npm install
+
+# Backend starten
+npm run server
+
+# Frontend starten (in neuem Terminal)
+npm run dev
 ```
+
+**Für Production:**
+```bash
+# Build erstellen
+npm run build
+
+# Dann kannst du z.B. mit PM2 oder einem anderen Process Manager
+# das Backend dauerhaft laufen lassen
+```
+
+### 📜 Lizenz & Nutzung
+
+Dieses Projekt ist **Open Source** - jeder darf es auf seinem Homeserver installieren und nutzen! 
+Entwickelt mit ❤️ und KI-Power von TigerKnight555

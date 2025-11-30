@@ -75,7 +75,7 @@ export class Maintenance {
 
 export const MaintenanceType = {
   // Motoröl und Filter
-  OIL_CHANGE: 'oil_change',                    // Motoröl + Ölfilter
+  OIL_CHANGE: 'oil_change',                   // Motoröl + Ölfilter
   AIR_FILTER: 'air_filter',                   // Luftfilter
   CABIN_FILTER: 'cabin_filter',               // Innenraumfilter (Pollen)
   FUEL_FILTER: 'fuel_filter',                 // Kraftstofffilter
@@ -101,7 +101,8 @@ export const MaintenanceType = {
   POWER_STEERING_FLUID: 'power_steering_fluid', // Servolenkungsöl
   
   // Reifen und Räder
-  TIRE_CHANGE: 'tire_change',                 // Reifen
+  TIRE_CHANGE: 'tire_change',                 // Reifenwechsel Sommer/Winter
+  TIRE_REPLACEMENT: 'tire_replacement',       // Reifenerneuerung (Verschleiß)
   
   // Elektronik
   BATTERY: 'battery',                         // Batterie (Starterbatterie)
@@ -133,7 +134,8 @@ export const MaintenanceTypeLabels: Record<MaintenanceType, string> = {
   [MaintenanceType.MANUAL_TRANSMISSION_FLUID]: 'Schaltgetriebeöl',
   [MaintenanceType.DIFFERENTIAL_OIL]: 'Differenzialöl',
   [MaintenanceType.POWER_STEERING_FLUID]: 'Servolenkungsöl',
-  [MaintenanceType.TIRE_CHANGE]: 'Reifen',
+  [MaintenanceType.TIRE_CHANGE]: 'Reifenwechsel (Sommer/Winter)',
+  [MaintenanceType.TIRE_REPLACEMENT]: 'Reifenerneuerung',
   [MaintenanceType.BATTERY]: 'Batterie (Starterbatterie)',
   [MaintenanceType.WIPER_BLADES]: 'Scheibenwischerblätter',
   [MaintenanceType.INSPECTION]: 'HU/TÜV',
@@ -157,7 +159,8 @@ export const MaintenanceTypeIcons: Record<MaintenanceType, string> = {
   [MaintenanceType.MANUAL_TRANSMISSION_FLUID]: '⚙️',
   [MaintenanceType.DIFFERENTIAL_OIL]: '🔧',
   [MaintenanceType.POWER_STEERING_FLUID]: '🎯',
-  [MaintenanceType.TIRE_CHANGE]: '🛞',
+  [MaintenanceType.TIRE_CHANGE]: '🔁',
+  [MaintenanceType.TIRE_REPLACEMENT]: '⚫',
   [MaintenanceType.BATTERY]: '🔋',
   [MaintenanceType.WIPER_BLADES]: '🧽',
   [MaintenanceType.INSPECTION]: '🔍',
@@ -167,16 +170,16 @@ export const MaintenanceTypeIcons: Record<MaintenanceType, string> = {
 // Standard-Wartungsintervalle basierend auf der Tabelle
 export const DefaultMaintenanceIntervals: Record<MaintenanceType, { intervalKilometers?: number; intervalMonths?: number; reminderAdvanceKm?: number; reminderAdvanceDays?: number }> = {
   [MaintenanceType.OIL_CHANGE]: {
-    intervalKilometers: 15000,
+    intervalKilometers: 12000,
     intervalMonths: 12,
     reminderAdvanceKm: 1000,
     reminderAdvanceDays: 14
   },
   [MaintenanceType.AIR_FILTER]: {
-    intervalKilometers: 30000,
-    intervalMonths: 24,
-    reminderAdvanceKm: 2000,
-    reminderAdvanceDays: 30
+    intervalKilometers: 48000,
+    intervalMonths: 36,
+    reminderAdvanceKm: 3000,
+    reminderAdvanceDays: 60
   },
   [MaintenanceType.CABIN_FILTER]: {
     intervalKilometers: 15000,
@@ -191,9 +194,9 @@ export const DefaultMaintenanceIntervals: Record<MaintenanceType, { intervalKilo
     reminderAdvanceDays: 60
   },
   [MaintenanceType.SPARK_PLUGS]: {
-    intervalKilometers: 60000,
-    intervalMonths: 48,
-    reminderAdvanceKm: 5000,
+    intervalKilometers: 48000,
+    intervalMonths: 36,
+    reminderAdvanceKm: 3000,
     reminderAdvanceDays: 60
   },
   [MaintenanceType.GLOW_PLUGS]: {
@@ -229,8 +232,10 @@ export const DefaultMaintenanceIntervals: Record<MaintenanceType, { intervalKilo
     reminderAdvanceDays: 30
   },
   [MaintenanceType.COOLANT]: {
-    intervalMonths: 48,
-    reminderAdvanceDays: 60
+    intervalKilometers: 48000,
+    intervalMonths: 24,
+    reminderAdvanceKm: 3000,
+    reminderAdvanceDays: 30
   },
   [MaintenanceType.AUTOMATIC_TRANSMISSION_FLUID]: {
     intervalKilometers: 80000,
@@ -257,10 +262,14 @@ export const DefaultMaintenanceIntervals: Record<MaintenanceType, { intervalKilo
     reminderAdvanceDays: 120
   },
   [MaintenanceType.TIRE_CHANGE]: {
+    intervalMonths: 6,
+    reminderAdvanceDays: 14
+  },
+  [MaintenanceType.TIRE_REPLACEMENT]: {
     intervalKilometers: 40000,
-    intervalMonths: 72,
+    intervalMonths: 48,
     reminderAdvanceKm: 3000,
-    reminderAdvanceDays: 90
+    reminderAdvanceDays: 60
   },
   [MaintenanceType.BATTERY]: {
     intervalMonths: 60,

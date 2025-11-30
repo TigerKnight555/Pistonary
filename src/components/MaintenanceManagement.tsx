@@ -16,7 +16,9 @@ import {
     FormControl,
     InputLabel,
     Select,
-    MenuItem
+    MenuItem,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import {
     Build as BuildIcon
@@ -57,7 +59,6 @@ interface EditMaintenanceDialogProps {
 function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCategories }: EditMaintenanceDialogProps) {
     const [formData, setFormData] = useState({
         lastPerformed: dayjs(),
-        name: '',
         type: 'other',
         cost: '',
         lastMileage: '',
@@ -79,7 +80,6 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCat
         if (maintenance && open) {
             setFormData({
                 lastPerformed: maintenance.lastPerformed ? dayjs(maintenance.lastPerformed) : dayjs(),
-                name: maintenance.name || '',
                 type: maintenance.type || 'other',
                 cost: maintenance.cost?.toString() || '',
                 lastMileage: maintenance.lastMileage?.toString() || '',
@@ -88,7 +88,6 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCat
         } else if (open) {
             setFormData({
                 lastPerformed: dayjs(),
-                name: '',
                 type: 'other',
                 cost: '',
                 lastMileage: '',
@@ -103,7 +102,6 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCat
         const updatedMaintenance: Maintenance = {
             ...maintenance,
             lastPerformed: formData.lastPerformed.toISOString(),
-            name: formData.name,
             type: formData.type,
             cost: formData.cost ? parseFloat(formData.cost) : undefined,
             lastMileage: formData.lastMileage ? parseInt(formData.lastMileage) : undefined,
@@ -126,12 +124,6 @@ function EditMaintenanceDialog({ open, maintenance, onClose, onSave, selectedCat
                             slotProps={{ textField: { fullWidth: true } }}
                         />
                         
-                        <TextField
-                            label="Name/Beschreibung"
-                            value={formData.name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            fullWidth
-                        />
                         
                         <FormControl fullWidth>
                             <InputLabel>Wartungstyp</InputLabel>
@@ -189,6 +181,8 @@ interface MaintenanceManagementProps {
 
 function MaintenanceManagement({ selectedCategories }: MaintenanceManagementProps) {
     const { token, selectedCarId } = useAuth();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     
     const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
     const [loading, setLoading] = useState(true);
@@ -333,6 +327,7 @@ function MaintenanceManagement({ selectedCategories }: MaintenanceManagementProp
                                         maintenance={maintenance}
                                         onEdit={(maintenance) => handleEdit(maintenance as any)}
                                         onDelete={(maintenance) => handleDelete(maintenance.id)}
+                                        isMobile={isMobile}
                                     />
                                 ))}
                             </Box>

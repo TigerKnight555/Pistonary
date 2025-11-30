@@ -25,7 +25,7 @@ export default function SettingsMenu() {
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isChartSettingsOpen, setIsChartSettingsOpen] = useState(false);
-  const { isDarkMode, isAutoColorEnabled, manualColors, toggleDarkMode, toggleAutoColor } = useSettings();
+  const { isDarkMode, /* isAutoColorEnabled, */ manualColors, toggleDarkMode, /* toggleAutoColor */ } = useSettings();
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -39,9 +39,11 @@ export default function SettingsMenu() {
     toggleDarkMode();
   };
 
+  /* Temporär deaktiviert
   const handleAutoColorToggle = () => {
     toggleAutoColor();
   };
+  */
 
   const handleColorPickerOpen = () => {
     setIsColorPickerOpen(true);
@@ -136,6 +138,7 @@ export default function SettingsMenu() {
         <Divider />
 
         {/* Auto Color Toggle */}
+        {/* Temporär deaktiviert
         <MenuItem onClick={handleAutoColorToggle} sx={{ py: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
@@ -161,6 +164,7 @@ export default function SettingsMenu() {
         </MenuItem>
 
         <Divider />
+        */}
 
         {/* Color Picker Option */}
         <MenuItem onClick={handleColorPickerOpen}>

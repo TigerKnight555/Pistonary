@@ -10,6 +10,8 @@ export interface Car {
     mileage?: number;
     powerUnit?: string; // Einheit für Leistung (PS oder kW)
     mileageUnit?: string; // Einheit für Kilometerstand (km oder mi)
+    taxCosts?: number; // Jährliche Steuerkosten in EUR
+    insuranceCosts?: number; // Jährliche Versicherungskosten in EUR
     licensePlate?: string;
     image?: string;
     notes?: string;

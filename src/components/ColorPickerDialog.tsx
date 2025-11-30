@@ -13,7 +13,9 @@ import {
   Divider,
   Paper,
   Tooltip,
-  Chip
+  Chip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import ColorizeIcon from '@mui/icons-material/Colorize';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -42,6 +44,8 @@ const colorPresets = {
 
 export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogProps) {
   const { manualColors, setManualColors } = useSettings();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [colors, setColors] = useState({
     primary: manualColors?.primary || '#1976d2',
@@ -92,10 +96,11 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
       onClose={handleClose}
       maxWidth="md"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          minHeight: 500
+          borderRadius: isMobile ? 0 : 2,
+          minHeight: isMobile ? '100vh' : 500
         }
       }}
     >
@@ -121,29 +126,29 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
         <Paper 
           elevation={2} 
           sx={{ 
-            p: 3, 
-            mb: 3, 
+            p: isMobile ? 2 : 3, 
+            mb: isMobile ? 2 : 3, 
             background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary}, ${colors.accent})`,
             color: 'white',
             textAlign: 'center',
             borderRadius: 2
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+          <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ fontWeight: 'bold', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
             Vorschau Ihres Themes
           </Typography>
-          <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.9, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
             So werden die Farben in der Anwendung aussehen
           </Typography>
         </Paper>
 
         {/* Manuelle Farbauswahl */}
-        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ColorizeIcon />
+        <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ColorizeIcon fontSize={isMobile ? "small" : "medium"} />
           Manuelle Farbauswahl
         </Typography>
         
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 3 : 4 }}>
           <Grid item xs={12} md={4}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -151,12 +156,12 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
               </Typography>
               <Box 
                 sx={{ 
-                  width: 80, 
-                  height: 80, 
+                  width: isMobile ? 60 : 80, 
+                  height: isMobile ? 60 : 80, 
                   bgcolor: colors.primary,
                   borderRadius: 2,
                   mx: 'auto',
-                  mb: 2,
+                  mb: isMobile ? 1.5 : 2,
                   border: 2,
                   borderColor: 'divider',
                   cursor: 'pointer'
@@ -186,12 +191,12 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
               </Typography>
               <Box 
                 sx={{ 
-                  width: 80, 
-                  height: 80, 
+                  width: isMobile ? 60 : 80, 
+                  height: isMobile ? 60 : 80, 
                   bgcolor: colors.secondary,
                   borderRadius: 2,
                   mx: 'auto',
-                  mb: 2,
+                  mb: isMobile ? 1.5 : 2,
                   border: 2,
                   borderColor: 'divider',
                   cursor: 'pointer'
@@ -221,12 +226,12 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
               </Typography>
               <Box 
                 sx={{ 
-                  width: 80, 
-                  height: 80, 
+                  width: isMobile ? 60 : 80, 
+                  height: isMobile ? 60 : 80, 
                   bgcolor: colors.accent,
                   borderRadius: 2,
                   mx: 'auto',
-                  mb: 2,
+                  mb: isMobile ? 1.5 : 2,
                   border: 2,
                   borderColor: 'divider',
                   cursor: 'pointer'
@@ -250,10 +255,10 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 3 }} />
+        <Divider sx={{ my: isMobile ? 2 : 3 }} />
 
         {/* Vordefinierte Farbpaletten */}
-        <Typography variant="h6" sx={{ mb: 2 }}>
+        <Typography variant={isMobile ? "subtitle1" : "h6"} sx={{ mb: 2 }}>
           Vordefinierte Automarken-Paletten
         </Typography>
         
@@ -266,10 +271,11 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
                   onClick={() => handlePresetSelect(preset)}
                   sx={{
                     width: '100%',
-                    height: 48,
+                    height: isMobile ? 40 : 48,
                     background: `linear-gradient(45deg, ${preset.primary}, ${preset.secondary})`,
                     color: 'white',
                     fontWeight: 'bold',
+                    fontSize: isMobile ? '0.75rem' : '0.875rem',
                     cursor: 'pointer',
                     '&:hover': {
                       transform: 'scale(1.05)',
@@ -283,35 +289,61 @@ export default function ColorPickerDialog({ open, onClose }: ColorPickerDialogPr
         </Grid>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 1 }}>
-        <Button 
-          onClick={handleReset}
-          startIcon={<RefreshIcon />}
-          variant="outlined"
-        >
-          Zurücksetzen
-        </Button>
-        {manualColors && (
+      <DialogActions sx={{ 
+        p: isMobile ? 2 : 3, 
+        gap: 1,
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: 'stretch'
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1, 
+          flexDirection: isMobile ? 'column' : 'row',
+          width: isMobile ? '100%' : 'auto'
+        }}>
           <Button 
-            onClick={handleClearManualColors}
-            startIcon={<DeleteIcon />}
+            onClick={handleReset}
+            startIcon={<RefreshIcon />}
             variant="outlined"
-            color="error"
+            fullWidth={isMobile}
           >
-            Manuelle Farben Entfernen
+            Zurücksetzen
           </Button>
-        )}
-        <Box sx={{ flexGrow: 1 }} />
-        <Button onClick={handleClose}>
-          Abbrechen
-        </Button>
-        <Button 
-          onClick={handleSave}
-          variant="contained"
-          startIcon={<SaveIcon />}
-        >
-          Farben Speichern
-        </Button>
+          {manualColors && (
+            <Button 
+              onClick={handleClearManualColors}
+              startIcon={<DeleteIcon />}
+              variant="outlined"
+              color="error"
+              fullWidth={isMobile}
+            >
+              Manuelle Farben Entfernen
+            </Button>
+          )}
+        </Box>
+        {!isMobile && <Box sx={{ flexGrow: 1 }} />}
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 1,
+          width: isMobile ? '100%' : 'auto'
+        }}>
+          <Button 
+            onClick={handleClose}
+            fullWidth={isMobile}
+            sx={{ width: isMobile ? '50%' : 'auto' }}
+          >
+            Abbrechen
+          </Button>
+          <Button 
+            onClick={handleSave}
+            variant="contained"
+            startIcon={<SaveIcon />}
+            fullWidth={isMobile}
+            sx={{ width: isMobile ? '50%' : 'auto' }}
+          >
+            Speichern
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );

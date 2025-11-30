@@ -349,11 +349,11 @@ export default function RefuelingsManagement() {
         }
     };
 
-    const handleDelete = async (refuelingId: number) => {
-        if (!token || !confirm('Möchten Sie diese Tankung wirklich löschen?')) return;
+    const handleDelete = async (refueling: Refueling) => {
+        if (!token) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/refuelings/${refuelingId}`, {
+            const response = await fetch(`${API_BASE_URL}/refuelings/${refueling.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -651,7 +651,7 @@ export default function RefuelingsManagement() {
                                         key={refueling.id}
                                         refueling={refueling}
                                         onEdit={handleEdit}
-                                        onDelete={(refueling) => handleDelete(refueling.id)}
+                                        onDelete={handleDelete}
                                     />
                                 ))}
                             </Box>
@@ -779,7 +779,9 @@ export default function RefuelingsManagement() {
                                                         size="small"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDelete(refueling.id);
+                                                            if (confirm('Möchten Sie diese Tankung wirklich löschen?')) {
+                                                                handleDelete(refueling);
+                                                            }
                                                         }}
                                                         color="error"
                                                     >

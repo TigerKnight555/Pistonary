@@ -78,6 +78,10 @@ export const carController = {
                 engineSize: car.engineSize,
                 notes: car.notes,
                 mileage: car.mileage,
+                powerUnit: car.powerUnit,
+                mileageUnit: car.mileageUnit,
+                taxCosts: car.taxCosts,
+                insuranceCosts: car.insuranceCosts,
                 additionalInfo: car.additionalInfo,
                 useStandardIntervals: car.useStandardIntervals,
                 useIndividualIntervals: useIndividualIntervals, // Use the raw DB value

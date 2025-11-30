@@ -119,7 +119,7 @@ export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }:
         (Number(formData.totalPrice) / Number(formData.liters)).toFixed(3) : '';
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <form onSubmit={handleSubmit}>
                 <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
                     Tankung hinzufügen

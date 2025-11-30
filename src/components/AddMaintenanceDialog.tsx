@@ -69,6 +69,7 @@ export default function AddMaintenanceDialog({
 }: AddMaintenanceDialogProps) {
   const { token, selectedCarId } = useAuth();
   const [car, setCar] = useState<Car | null>(null);
+  const [carMaintenanceIntervals, setCarMaintenanceIntervals] = useState<MaintenanceType[]>([]);
   
   // Verwende die übergebene carId oder die aus dem Auth-Context
   const activeCarId = carId || selectedCarId;
@@ -89,6 +90,7 @@ export default function AddMaintenanceDialog({
   useEffect(() => {
     if (open && activeCarId) {
       loadCar();
+      loadCarMaintenanceIntervals();
     }
   }, [open, activeCarId]);
 
@@ -108,6 +110,62 @@ export default function AddMaintenanceDialog({
       }
     } catch (error) {
       console.error('Error loading car:', error);
+    }
+  };
+
+  const loadCarMaintenanceIntervals = async () => {
+    if (!activeCarId) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/maintenance-intervals/car/${activeCarId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const intervals = await response.json();
+        console.log('Loaded maintenance intervals:', intervals);
+        
+        // Mapping von Namen zu Enum-Types
+        const nameToTypeMap: Record<string, MaintenanceType> = {
+          'Motoröl + Ölfilter': MaintenanceType.OIL_CHANGE,
+          'Luftfilter': MaintenanceType.AIR_FILTER,
+          'Innenraumfilter (Pollen)': MaintenanceType.CABIN_FILTER,
+          'Kraftstofffilter': MaintenanceType.FUEL_FILTER,
+          'Zündkerzen (Benziner)': MaintenanceType.SPARK_PLUGS,
+          'Glühkerzen (Diesel)': MaintenanceType.GLOW_PLUGS,
+          'Zahnriemen': MaintenanceType.TIMING_BELT,
+          'Keil-/Rippenriemen': MaintenanceType.DRIVE_BELT,
+          'Bremsbeläge': MaintenanceType.BRAKE_PADS,
+          'Bremsscheiben': MaintenanceType.BRAKE_DISCS,
+          'Bremsflüssigkeit': MaintenanceType.BRAKE_FLUID,
+          'Kühlmittel': MaintenanceType.COOLANT,
+          'Automatikgetriebeöl': MaintenanceType.AUTOMATIC_TRANSMISSION_FLUID,
+          'Schaltgetriebeöl': MaintenanceType.MANUAL_TRANSMISSION_FLUID,
+          'Differenzialöl': MaintenanceType.DIFFERENTIAL_OIL,
+          'Servolenkungsöl': MaintenanceType.POWER_STEERING_FLUID,
+          'Reifenwechsel (Sommer/Winter)': MaintenanceType.TIRE_CHANGE,
+          'Reifenerneuerung': MaintenanceType.TIRE_REPLACEMENT,
+          'Batterie (Starterbatterie)': MaintenanceType.BATTERY,
+          'Scheibenwischerblätter': MaintenanceType.WIPER_BLADES,
+          'HU/TÜV': MaintenanceType.INSPECTION,
+          'Sonstiges': MaintenanceType.OTHER
+        };
+        
+        // Extrahiere die MaintenanceTypes aus den aktiven Intervallen
+        const types = intervals
+          .filter((interval: any) => interval.isActive)
+          .map((interval: any) => nameToTypeMap[interval.name])
+          .filter((type: MaintenanceType | undefined) => type !== undefined) as MaintenanceType[];
+        
+        console.log('Filtered active types:', types);
+        setCarMaintenanceIntervals(types);
+      } else {
+        console.error('Failed to load intervals, status:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading maintenance intervals:', error);
     }
   };
 
@@ -254,7 +312,7 @@ export default function AddMaintenanceDialog({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
-      <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
           <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
             Neue Wartung
@@ -282,7 +340,7 @@ export default function AddMaintenanceDialog({
                   onChange={(e) => handleChange('type', e.target.value)}
                   label="Wartungstyp *"
                 >
-                  {availableTypes?.map((type) => (
+                  {(availableTypes || carMaintenanceIntervals)?.map((type) => (
                     <MenuItem key={type} value={type}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography component="span">

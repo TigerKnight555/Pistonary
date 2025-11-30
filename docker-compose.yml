@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  pistonary:
+    build: .
+    container_name: pistonary
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persistiere die SQLite-Datenbank
+      - ./data:/app/data
+      # Optional: Wenn du die Datenbank woanders speichern möchtest
+      # - /pfad/auf/host:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # Optional: JWT Secret (empfohlen für Produktion)
+      # - JWT_SECRET=dein-super-geheimer-schluessel
+    restart: unless-stopped
+    networks:
+      - pistonary-network
+
+networks:
+  pistonary-network:
+    driver: bridge

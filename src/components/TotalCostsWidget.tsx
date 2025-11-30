@@ -21,7 +21,8 @@ import {
   Euro as EuroIcon,
   Build as MaintenanceIcon,
   LocalGasStation as FuelIcon,
-  TrendingUp as TrendIcon
+  TrendingUp as TrendIcon,
+  AttachMoney as InvestmentIcon
 } from '@mui/icons-material';
 import { useMaintenanceContext } from '../contexts/MaintenanceContext';
 
@@ -30,7 +31,7 @@ export type TimeRange = 'lastMonth' | 'lastQuarter' | 'lastHalfYear' | 'lastYear
 export default function TotalCostsWidget() {
   const [expanded, setExpanded] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('all');
-  const { maintenances, refuelings, loading } = useMaintenanceContext();
+  const { maintenances, refuelings, investments, car, loading } = useMaintenanceContext();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -84,11 +85,15 @@ export default function TotalCostsWidget() {
     const filteredRefuelings = refuelings.filter(r => 
       r.date && new Date(r.date) >= startDate
     );
+
+    const filteredInvestments = investments.filter(i => 
+      i.date && new Date(i.date) >= startDate
+    );
     
-    return { filteredMaintenances, filteredRefuelings };
+    return { filteredMaintenances, filteredRefuelings, filteredInvestments };
   };
 
-  const { filteredMaintenances, filteredRefuelings } = getFilteredData();
+  const { filteredMaintenances, filteredRefuelings, filteredInvestments } = getFilteredData();
 
   // Berechne Gesamtkosten für Wartungen (gefiltert)
   const totalMaintenanceCosts = filteredMaintenances.reduce((total, maintenance) => {
@@ -100,8 +105,38 @@ export default function TotalCostsWidget() {
     return total + (refueling.price || 0);
   }, 0);
 
-  // Gesamtkosten
-  const totalCosts = totalMaintenanceCosts + totalFuelCosts;
+  // Berechne Gesamtkosten für Investitionen (gefiltert)
+  const totalInvestmentCosts = filteredInvestments.reduce((total, investment) => {
+    return total + (investment.amount || 0);
+  }, 0);
+
+  // Berechne Anzahl der Monate im gewählten Zeitraum
+  const getMonthsInRange = () => {
+    switch (selectedTimeRange) {
+      case 'lastMonth': return 1;
+      case 'lastQuarter': return 3;
+      case 'lastHalfYear': return 6;
+      case 'lastYear': return 12;
+      case 'all': return 12; // Bei "alle" verwenden wir 12 Monate für den Durchschnitt
+      default: return 1;
+    }
+  };
+
+  // Berechne anteilige Fixkosten (Steuer und Versicherung) für den gewählten Zeitraum
+  const calculateFixedCosts = () => {
+    if (!car) return 0;
+    
+    const yearlyFixedCosts = (car.taxCosts || 0) + (car.insuranceCosts || 0);
+    if (yearlyFixedCosts === 0) return 0;
+    
+    const months = getMonthsInRange();
+    return (yearlyFixedCosts / 12) * months;
+  };
+
+  const totalFixedCosts = calculateFixedCosts();
+
+  // Gesamtkosten (inkl. Fixkosten und Investitionen)
+  const totalCosts = totalMaintenanceCosts + totalFuelCosts + totalInvestmentCosts + totalFixedCosts;
 
   // Berechne Durchschnittskosten pro Monat basierend auf gewähltem Zeitraum
   const calculateMonthlyAverage = () => {
@@ -117,11 +152,19 @@ export default function TotalCostsWidget() {
       const recentRefuelings = refuelings.filter(r => 
         r.date && new Date(r.date) >= twelveMonthsAgo
       );
+
+      const recentInvestments = investments.filter(i => 
+        i.date && new Date(i.date) >= twelveMonthsAgo
+      );
       
       const recentMaintenanceCosts = recentMaintenances.reduce((total, m) => total + (m.cost || 0), 0);
       const recentFuelCosts = recentRefuelings.reduce((total, r) => total + (r.price || 0), 0);
+      const recentInvestmentCosts = recentInvestments.reduce((total, i) => total + (i.amount || 0), 0);
       
-      return (recentMaintenanceCosts + recentFuelCosts) / 12;
+      // Fixkosten für 12 Monate (1 Jahr)
+      const yearlyFixedCosts = (car?.taxCosts || 0) + (car?.insuranceCosts || 0);
+      
+      return (recentMaintenanceCosts + recentFuelCosts + recentInvestmentCosts + yearlyFixedCosts) / 12;
     } else {
       // Bei anderen Zeiträumen basierend auf der Anzahl der Monate im Zeitraum
       let months: number;
@@ -281,7 +324,7 @@ export default function TotalCostsWidget() {
                 lineHeight: 1.4
               }}
             >
-              Kostenaufschlüsselung ({getTimeRangeLabel()}) • {formatCount(filteredMaintenances.length, 'Wartung', 'Wartungen')} • {formatCount(filteredRefuelings.length, 'Tankung', 'Tankungen')}
+              Kostenaufschlüsselung ({getTimeRangeLabel()}) • {formatCount(filteredMaintenances.length, 'Wartung', 'Wartungen')} • {formatCount(filteredRefuelings.length, 'Tankung', 'Tankungen')} • {formatCount(filteredInvestments.length, 'Investition', 'Investitionen')}
             </Typography>
             
             <Stack spacing={isMobile ? 1.5 : 2}>
@@ -301,14 +344,18 @@ export default function TotalCostsWidget() {
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
                     <MaintenanceIcon 
-                      color="primary" 
-                      sx={{ fontSize: isMobile ? 16 : 18 }} 
+                      sx={{ 
+                        color: '#1976d2',
+                        fontSize: isMobile ? 16 : 18 
+                      }} 
                     />
                     <Typography 
                       variant={isMobile ? "caption" : "subtitle2"} 
                       fontWeight="bold" 
-                      color="primary"
-                      sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}
+                      sx={{ 
+                        color: '#1976d2',
+                        fontSize: isMobile ? '0.8rem' : '0.875rem' 
+                      }}
                     >
                       Wartungskosten
                     </Typography>
@@ -326,7 +373,7 @@ export default function TotalCostsWidget() {
                   color="text.secondary" 
                   sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
                 >
-                  ⌀ {formatCurrency(totalMaintenanceCosts / Math.max(filteredMaintenances.length, 1))} pro Wartung
+                  ⌀ {formatCurrency(totalMaintenanceCosts / Math.max(getMonthsInRange(), 1))} pro Monat
                 </Typography>
               </Box>
 
@@ -375,9 +422,117 @@ export default function TotalCostsWidget() {
                   color="text.secondary" 
                   sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
                 >
-                  ⌀ {formatCurrency(totalFuelCosts / Math.max(filteredRefuelings.length, 1))} pro Tankung
+                  ⌀ {formatCurrency(totalFuelCosts / Math.max(getMonthsInRange(), 1))} pro Monat
                 </Typography>
               </Box>
+
+              {/* Investitionskosten Details */}
+              {totalInvestmentCosts > 0 && (
+                <Box sx={{ 
+                  p: isMobile ? 1.5 : 2, 
+                  backgroundColor: 'rgba(255, 152, 0, 0.04)', 
+                  borderRadius: 1,
+                  border: '1px solid rgba(255, 152, 0, 0.12)'
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mb: 1,
+                    gap: 1
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+                      <InvestmentIcon 
+                        sx={{ 
+                          color: '#ff9800', 
+                          fontSize: isMobile ? 16 : 18 
+                        }} 
+                      />
+                      <Typography 
+                        variant={isMobile ? "caption" : "subtitle2"} 
+                        fontWeight="bold" 
+                        sx={{ 
+                          color: '#ff9800',
+                          fontSize: isMobile ? '0.8rem' : '0.875rem'
+                        }}
+                      >
+                        Sonstige Kosten
+                      </Typography>
+                    </Box>
+                    <Typography 
+                      variant={isMobile ? "caption" : "subtitle2"} 
+                      fontWeight="bold"
+                      sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}
+                    >
+                      {formatCurrency(totalInvestmentCosts)}
+                    </Typography>
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    ⌀ {formatCurrency(totalInvestmentCosts / Math.max(getMonthsInRange(), 1))} pro Monat
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Fixkosten Details (Steuer und Versicherung) */}
+              {totalFixedCosts > 0 && (
+                <Box sx={{ 
+                  p: isMobile ? 1.5 : 2, 
+                  backgroundColor: 'rgba(156, 39, 176, 0.04)', 
+                  borderRadius: 1,
+                  border: '1px solid rgba(156, 39, 176, 0.12)'
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mb: 1,
+                    gap: 1
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+                      <EuroIcon 
+                        sx={{ 
+                          color: '#9c27b0', 
+                          fontSize: isMobile ? 16 : 18 
+                        }} 
+                      />
+                      <Typography 
+                        variant={isMobile ? "caption" : "subtitle2"} 
+                        fontWeight="bold" 
+                        sx={{ 
+                          color: '#9c27b0',
+                          fontSize: isMobile ? '0.8rem' : '0.875rem'
+                        }}
+                      >
+                        Fixkosten
+                      </Typography>
+                    </Box>
+                    <Typography 
+                      variant={isMobile ? "caption" : "subtitle2"} 
+                      fontWeight="bold"
+                      sx={{ fontSize: isMobile ? '0.8rem' : '0.875rem' }}
+                    >
+                      {formatCurrency(totalFixedCosts)}
+                    </Typography>
+                  </Box>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    {car && ((car.taxCosts || 0) > 0 || (car.insuranceCosts || 0) > 0) && (
+                      <>
+                        {(car.taxCosts || 0) > 0 && `Steuer: ${formatCurrency(car.taxCosts || 0)}/Jahr`}
+                        {(car.taxCosts || 0) > 0 && (car.insuranceCosts || 0) > 0 && ' • '}
+                        {(car.insuranceCosts || 0) > 0 && `Versicherung: ${formatCurrency(car.insuranceCosts || 0)}/Jahr`}
+                      </>
+                    )}
+                  </Typography>
+                </Box>
+              )}
 
               {/* Statistiken */}
               <Box sx={{ 
@@ -422,11 +577,15 @@ export default function TotalCostsWidget() {
                       <Chip 
                         label={`${Math.round((totalMaintenanceCosts / totalCosts) * 100)}% Wartung`}
                         size="small"
-                        color="primary"
                         variant="outlined"
                         sx={{ 
+                          borderColor: '#1976d2',
+                          color: '#1976d2',
                           fontSize: isMobile ? '0.7rem' : '0.75rem',
-                          height: isMobile ? 24 : 32
+                          height: isMobile ? 24 : 32,
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                          }
                         }}
                       />
                       <Chip 
@@ -443,6 +602,38 @@ export default function TotalCostsWidget() {
                           }
                         }}
                       />
+                      {totalInvestmentCosts > 0 && (
+                        <Chip 
+                          label={`${Math.round((totalInvestmentCosts / totalCosts) * 100)}% Sonstige`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            borderColor: '#ff9800',
+                            color: '#ff9800',
+                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                            height: isMobile ? 24 : 32,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 152, 0, 0.04)'
+                            }
+                          }}
+                        />
+                      )}
+                      {totalFixedCosts > 0 && (
+                        <Chip 
+                          label={`${Math.round((totalFixedCosts / totalCosts) * 100)}% Fixkosten`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            borderColor: '#9c27b0',
+                            color: '#9c27b0',
+                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                            height: isMobile ? 24 : 32,
+                            '&:hover': {
+                              backgroundColor: 'rgba(156, 39, 176, 0.04)'
+                            }
+                          }}
+                        />
+                      )}
                     </Box>
                   )}
                 </Stack>

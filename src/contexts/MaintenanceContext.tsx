@@ -7,12 +7,26 @@ import type { Refueling } from '../database/entities/Refueling';
 import type { Car } from '../database/entities/Car';
 import type { MaintenanceIntervalView } from '../types/Maintenance';
 
+// Investment Type
+interface Investment {
+  id: number;
+  carId: number;
+  date: string;
+  description: string;
+  amount: number;
+  category?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Status Types
 export type MaintenanceStatus = 'not_recorded' | 'good' | 'soon' | 'overdue';
 
 interface MaintenanceContextType {
   maintenances: Maintenance[];
   refuelings: Refueling[];
+  investments: Investment[];
   car: Car | null;
   individualIntervals: MaintenanceIntervalView[];
   loading: boolean;
@@ -43,6 +57,7 @@ interface MaintenanceProviderProps {
 export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ children }) => {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [refuelings, setRefuelings] = useState<Refueling[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
   const [car, setCar] = useState<Car | null>(null);
   const [individualIntervals, setIndividualIntervals] = useState<MaintenanceIntervalView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +97,17 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
       const carResponse = await fetch(`${API_BASE_URL}/cars/${carId}`, { headers });
       const carData = await carResponse.json();
 
+      // Lade Investitionen
+      let investmentsData: Investment[] = [];
+      try {
+        const investmentsResponse = await fetch(`${API_BASE_URL}/investments/car/${carId}`, { headers });
+        if (investmentsResponse.ok) {
+          investmentsData = await investmentsResponse.json();
+        }
+      } catch (investmentError) {
+        console.error('Fehler beim Laden der Investitionen:', investmentError);
+      }
+
       // Lade individuelle Wartungsintervalle (falls das Auto sie verwendet)
       // WORKAROUND: Lade immer die individuellen Intervalle, da das useIndividualIntervals Feld Backend-Probleme hat
       let individualIntervalsData: MaintenanceIntervalView[] = [];
@@ -97,6 +123,7 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
       console.log('MaintenanceContext - Daten geladen:', {
         maintenances: maintenanceData?.length || 0,
         refuelings: refuelingData?.length || 0,
+        investments: investmentsData?.length || 0,
         car: carData,
         useIndividualIntervals: carData?.useIndividualIntervals,
         individualIntervals: individualIntervalsData?.length || 0
@@ -104,6 +131,7 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
 
       setMaintenances(maintenanceData || []);
       setRefuelings(refuelingData || []);
+      setInvestments(investmentsData || []);
       setCar(carData || null);
       setIndividualIntervals(individualIntervalsData || []);
     } catch (error) {
@@ -131,26 +159,30 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
 
   // Hilfsfunktion: Hole die richtigen Intervalle basierend auf der Auto-Konfiguration
   const getIntervalForMaintenanceType = useCallback((maintenanceType: MaintenanceType): { intervalMonths?: number; intervalKilometers?: number } => {
-    // WORKAROUND: Da das useIndividualIntervals Feld momentan Backend-Probleme hat,
-    // prüfen wir intelligent basierend auf vorhandenen Daten
+    // Prüfe die Auto-Konfiguration für Wartungsintervalle
     const hasIndividualData = individualIntervals && individualIntervals.length > 0;
-    const hasStandardIntervalsDisabled = car?.useStandardIntervals === false;
+    const shouldUseStandardIntervals = car?.useStandardIntervals ?? true; // Default: Standard verwenden
+    const shouldUseIndividualIntervals = car?.useIndividualIntervals ?? false; // Default: Individuelle nicht verwenden
     
-    const shouldUseIndividualIntervals = hasIndividualData || hasStandardIntervalsDisabled;
+    // Wenn explizit individuelle Intervalle gewählt wurden UND Daten vorhanden sind
+    const useIndividualLogic = shouldUseIndividualIntervals && hasIndividualData;
 
     console.log('getIntervalForMaintenanceType:', {
       maintenanceType,
       hasIndividualData,
-      hasStandardIntervalsDisabled,
+      shouldUseStandardIntervals,
       shouldUseIndividualIntervals,
+      useIndividualLogic,
       individualIntervalsCount: individualIntervals?.length || 0,
-      individualIntervals: individualIntervals
+      carUseStandardIntervals: car?.useStandardIntervals,
+      carUseIndividualIntervals: car?.useIndividualIntervals
     });
 
-    if (shouldUseIndividualIntervals && individualIntervals) {
+    if (useIndividualLogic) {
       // Erstelle ein Mapping zwischen MaintenanceType enum und Namen in der Datenbank
       const typeNameMapping: Record<string, string> = {
-        'oil_change': 'Motoröl + Ölfilter',
+        'engine_oil': 'Motoröl',
+        'oil_filter': 'Ölfilter',
         'air_filter': 'Luftfilter',
         'cabin_filter': 'Innenraumfilter',
         'fuel_filter': 'Kraftstofffilter', 
@@ -320,6 +352,7 @@ export const MaintenanceProvider: React.FC<MaintenanceProviderProps> = ({ childr
   const value: MaintenanceContextType = {
     maintenances,
     refuelings,
+    investments,
     car,
     individualIntervals,
     loading,
@@ -345,7 +378,8 @@ function getDefaultIntervals(type: MaintenanceType): { intervalMonths?: number; 
   // Diese Funktion sollte aus der Maintenance.ts importiert werden
   // Für jetzt verwende ich einige Standard-Intervalle als Fallback
   const defaultIntervals: Record<string, { intervalMonths?: number; intervalKilometers?: number }> = {
-    'oil_change': { intervalKilometers: 15000, intervalMonths: 12 },
+    'engine_oil': { intervalKilometers: 12000, intervalMonths: 12 },
+    'oil_filter': { intervalKilometers: 12000, intervalMonths: 12 },
     'inspection': { intervalMonths: 24 },
     'air_filter': { intervalKilometers: 30000, intervalMonths: 24 },
     'cabin_filter': { intervalKilometers: 15000, intervalMonths: 12 },

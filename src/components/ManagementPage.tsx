@@ -10,10 +10,8 @@ import {
     useMediaQuery
 } from '@mui/material';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
-import EventIcon from '@mui/icons-material/Event';
 import BuildIcon from '@mui/icons-material/Build';
 import RefuelingsManagement from './RefuelingsManagement';
-import EventsManagement from './EventsManagement';
 import MaintenanceManagement from './MaintenanceManagement';
 import { useAuth } from '../contexts/AuthContext';
 import type { MaintenanceType } from '../database/entities/Maintenance';
@@ -107,7 +105,7 @@ export default function ManagementPage() {
                         fontSize: isMobile ? '0.8rem' : '0.9rem'
                     }}
                 >
-                    Hier können Sie alle Ihre Tankungen, Ereignisse und Wartungen einsehen und bearbeiten.
+                    Hier können Sie alle Ihre Tankungen und Wartungen einsehen und bearbeiten.
                 </Typography>
 
                 <Box sx={{ 
@@ -136,15 +134,9 @@ export default function ManagementPage() {
                             iconPosition={isMobile ? "top" : "start"}
                         />
                         <Tab 
-                            icon={<EventIcon />} 
-                            label="Ereignisse" 
-                            {...a11yProps(1)}
-                            iconPosition={isMobile ? "top" : "start"}
-                        />
-                        <Tab 
                             icon={<BuildIcon />} 
                             label="Wartungen" 
-                            {...a11yProps(2)}
+                            {...a11yProps(1)}
                             iconPosition={isMobile ? "top" : "start"}
                         />
                     </Tabs>
@@ -154,9 +146,6 @@ export default function ManagementPage() {
                     <RefuelingsManagement />
                 </TabPanel>
                 <TabPanel value={activeTab} index={1}>
-                    <EventsManagement />
-                </TabPanel>
-                <TabPanel value={activeTab} index={2}>
                     <MaintenanceManagement selectedCategories={selectedCategories} />
                 </TabPanel>
             </Paper>

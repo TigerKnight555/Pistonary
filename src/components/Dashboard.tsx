@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, ThemeProvider, FormControl, InputLabel, Select, MenuItem, Grid } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Alert, useTheme, useMediaQuery, Card, CardContent, CardMedia, IconButton, Grid } from '@mui/material';
 import { useSwipeable } from 'react-swipeable';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import EventIcon from '@mui/icons-material/Event';
+import BuildIcon from '@mui/icons-material/Build';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddRefuelingDialog from './AddRefuelingDialog';
+import AddMaintenanceDialog from './AddMaintenanceDialog';
 import RecentRefuelings from './RecentRefuelings';
 import RefuelingChart from './RefuelingChart';
-import AddEventDialog from './AddEventDialog';
 import MaintenanceStatusWidget from './MaintenanceStatusWidget';
 import TotalCostsWidget from './TotalCostsWidget';
 import { useAuth } from '../contexts/AuthContext';
-import { useSimpleDynamicTheme } from '../hooks/useSimpleDynamicTheme';
 import type { Car } from '../database/entities/Car';
 import type { Refueling } from '../database/entities/Refueling';
 import { API_BASE_URL } from '../config/api';
 import { formatPowerValue } from '../utils/powerConversion';
-
 
 
 export default function Dashboard() {
@@ -26,36 +24,30 @@ export default function Dashboard() {
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
     const [currentCarIndex, setCurrentCarIndex] = useState(0);
     const [isAddRefuelingDialogOpen, setIsAddRefuelingDialogOpen] = useState(false);
-    const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
+    const [isAddMaintenanceDialogOpen, setIsAddMaintenanceDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
 
     const [isTransitioning, setIsTransitioning] = useState(false);
     
     const { setSelectedCar: setSelectedCarInAuth } = useAuth();
-    const fallbackTheme = useTheme();
-    const isMobile = useMediaQuery(fallbackTheme.breakpoints.down('md'));
-    
-    // Dynamisches Theme basierend auf Auto-Bild (nur Akzentfarben)
-    const { theme: dynamicTheme, extractedColors } = useSimpleDynamicTheme({
-        imageUrl: selectedCar?.image,
-        baseTheme: fallbackTheme
-    });
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // Swipe handlers für Auto-Navigation
+    // Swipe handlers für Auto-Navigation (nur auf Mobile aktiv)
     const swipeHandlers = useSwipeable({
         onSwipedLeft: () => {
-            if (cars.length > 1 && !isTransitioning) {
+            if (cars.length > 1 && !isTransitioning && isMobile) {
                 goToNextCar();
             }
         },
         onSwipedRight: () => {
-            if (cars.length > 1 && !isTransitioning) {
+            if (cars.length > 1 && !isTransitioning && isMobile) {
                 goToPreviousCar();
             }
         },
         preventScrollOnSwipe: true,
-        trackMouse: true, // Ermöglicht auch Mouse-Drag auf Desktop
+        trackMouse: false, // Deaktiviert auf Desktop
         delta: 30, // Reduzierte Mindest-Swipe-Distanz für bessere Responsivität
         swipeDuration: 500, // Maximale Swipe-Dauer
         touchEventOptions: { passive: false } // Bessere Touch-Kontrolle
@@ -170,8 +162,8 @@ export default function Dashboard() {
         }
     };
 
-    const handleAddEvent = () => {
-        setRefuelingUpdateTrigger(prev => prev + 1); // Triggert Update der Charts (Events werden in Charts angezeigt)
+    const handleAddMaintenance = () => {
+        setRefuelingUpdateTrigger(prev => prev + 1); // Triggert Update der Widgets
     };
 
     useEffect(() => {
@@ -215,17 +207,16 @@ export default function Dashboard() {
     }
 
     return (
-        <ThemeProvider theme={dynamicTheme || fallbackTheme}>
-            <Container 
-                maxWidth={false}
-                sx={{ 
-                    mt: isMobile ? 2 : 3, 
-                    mb: isMobile ? 2 : 4,
-                    px: { xs: 0.5, sm: 1, md: 2 }, // Minimal padding for maximum width usage
-                    width: '100%',
-                    maxWidth: '100vw' // Use full viewport width
-                }}
-            >
+        <Container 
+            maxWidth={false}
+            sx={{ 
+                mt: isMobile ? 2 : 3, 
+                mb: isMobile ? 2 : 4,
+                px: { xs: 0.5, sm: 1, md: 2 }, // Minimal padding for maximum width usage
+                width: '100%',
+                maxWidth: '100vw' // Use full viewport width
+            }}
+        >
                 {/* Begrüßung mit Auto-Name und Navigation */}
                 <Paper sx={{ 
                     p: isMobile ? 2 : 3, 
@@ -289,91 +280,142 @@ export default function Dashboard() {
                         </Box>
                     )}
                     
-                    {/* Carousel Container */}
+                    {/* Carousel Container mit Navigation Buttons */}
                     <Box 
                         sx={{ 
                             overflow: 'hidden',
                             borderRadius: 2,
                             position: 'relative',
-                            width: '100%'
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: isMobile ? 0 : 2
                         }}
                     >
+                        {/* Left Arrow Button - nur auf Desktop */}
+                        {!isMobile && cars.length > 1 && (
+                            <IconButton
+                                onClick={goToPreviousCar}
+                                disabled={isTransitioning}
+                                sx={{
+                                    flexShrink: 0,
+                                    bgcolor: 'background.paper',
+                                    boxShadow: 2,
+                                    '&:hover': {
+                                        bgcolor: 'action.hover',
+                                        boxShadow: 3
+                                    },
+                                    '&:disabled': {
+                                        opacity: 0.5
+                                    }
+                                }}
+                            >
+                                <ArrowBackIosIcon />
+                            </IconButton>
+                        )}
+
                         <Box
-                            {...swipeHandlers}
+                            {...(isMobile ? swipeHandlers : {})}
                             sx={{
-                                display: 'flex',
-                                width: `${cars.length * 100}%`,
-                                transform: `translateX(-${(currentCarIndex * 100) / cars.length}%)`,
-                                transition: isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                                cursor: cars.length > 1 ? 'grab' : 'default',
+                                width: '100%',
+                                position: 'relative',
+                                cursor: cars.length > 1 && isMobile ? 'grab' : 'default',
                                 '&:active': {
-                                    cursor: cars.length > 1 ? 'grabbing' : 'default',
+                                    cursor: cars.length > 1 && isMobile ? 'grabbing' : 'default',
                                 },
-                                touchAction: 'pan-y pinch-zoom' // Erlaubt vertikales Scrollen, aber horizontales Swipen
+                                touchAction: 'pan-y pinch-zoom', // Erlaubt vertikales Scrollen, aber horizontales Swipen
+                                overflow: 'hidden'
                             }}
                         >
-                            {cars.map((car, index) => (
-                                <Box
-                                    key={car.id}
-                                    sx={{
-                                        width: `${100 / cars.length}%`,
-                                        flexShrink: 0,
-                                        px: 1 // Padding statt Margin für bessere Kontrolle
-                                    }}
-                                >
-                                    <Card sx={{ 
+                            {/* Nur die aktuelle Karte anzeigen mit Slide-Animation */}
+                            {selectedCar && (
+                                <Card 
+                                    key={selectedCar.id}
+                                    sx={{ 
                                         boxShadow: 3,
                                         userSelect: 'none',
-                                        height: '100%'
-                                    }}>
-                                        {car.image ? (
-                                            <CardMedia
-                                                component="img"
-                                                height={isMobile ? "200" : "300"}
-                                                image={car.image}
-                                                alt={`${car.manufacturer} ${car.model}`}
-                                                sx={{ 
-                                                    objectFit: 'cover',
-                                                    userSelect: 'none'
-                                                }}
-                                            />
-                                        ) : (
-                                            <Box
-                                                sx={{
-                                                    height: isMobile ? 200 : 300,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    backgroundColor: 'grey.100',
-                                                    userSelect: 'none'
-                                                }}
-                                            >
-                                                <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400' }} />
-                                            </Box>
-                                        )}
-                                        <CardContent sx={{ p: 2 }}>
-                                            <Typography variant="h6" component="h2" gutterBottom>
-                                                {car.manufacturer} {car.model}
+                                        animation: isTransitioning ? 'slideIn 0.3s ease-out' : 'none',
+                                        '@keyframes slideIn': {
+                                            '0%': {
+                                                opacity: 0,
+                                                transform: 'translateX(30px)'
+                                            },
+                                            '100%': {
+                                                opacity: 1,
+                                                transform: 'translateX(0)'
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {selectedCar.image ? (
+                                        <CardMedia
+                                            component="img"
+                                            height={isMobile ? "200" : "300"}
+                                            image={selectedCar.image}
+                                            alt={`${selectedCar.manufacturer} ${selectedCar.model}`}
+                                            sx={{ 
+                                                objectFit: 'cover',
+                                                userSelect: 'none'
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box
+                                            sx={{
+                                                height: isMobile ? 200 : 300,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: 'grey.100',
+                                                userSelect: 'none'
+                                            }}
+                                        >
+                                            <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400' }} />
+                                        </Box>
+                                    )}
+                                    <CardContent sx={{ p: 2 }}>
+                                        <Typography variant="h6" component="h2" gutterBottom>
+                                            {selectedCar.manufacturer} {selectedCar.model}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                <strong>Kennzeichen:</strong> {selectedCar.licensePlate}
                                             </Typography>
-                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                                    <strong>Kennzeichen:</strong> {car.licensePlate}
-                                                </Typography>
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                                    <strong>Jahr:</strong> {car.year}
-                                                </Typography>
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                                    <strong>Leistung:</strong> {formatPowerValue(car.power, 'PS')}
-                                                </Typography>
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                                                    <strong>Kraftstoff:</strong> {car.fuel}
-                                                </Typography>
-                                            </Box>
-                                        </CardContent>
-                                    </Card>
-                                </Box>
-                            ))}
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                <strong>Jahr:</strong> {selectedCar.year}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                <strong>Leistung:</strong> {formatPowerValue(selectedCar.power, 'PS')}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                <strong>Kraftstoff:</strong> {selectedCar.fuel}
+                                            </Typography>
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </Box>
+
+                        {/* Right Arrow Button - nur auf Desktop */}
+                        {!isMobile && cars.length > 1 && (
+                            <IconButton
+                                onClick={goToNextCar}
+                                disabled={isTransitioning}
+                                sx={{
+                                    flexShrink: 0,
+                                    bgcolor: 'background.paper',
+                                    boxShadow: 2,
+                                    '&:hover': {
+                                        bgcolor: 'action.hover',
+                                        boxShadow: 3
+                                    },
+                                    '&:disabled': {
+                                        opacity: 0.5
+                                    }
+                                }}
+                            >
+                                <ArrowForwardIosIcon />
+                            </IconButton>
+                        )}
                     </Box>
                     
                     {/* Swipe-Hinweis für Mobile */}
@@ -449,8 +491,8 @@ export default function Dashboard() {
                             <Button
                                 variant="outlined"
                                 size={isMobile ? "medium" : "large"}
-                                startIcon={<EventIcon />}
-                                onClick={() => setIsAddEventDialogOpen(true)}
+                                startIcon={<BuildIcon />}
+                                onClick={() => setIsAddMaintenanceDialogOpen(true)}
                                 sx={{ 
                                     py: isMobile ? 1.5 : 2,
                                     px: isMobile ? 2 : 3,
@@ -459,7 +501,7 @@ export default function Dashboard() {
                                     minHeight: 44 // Touch-friendly minimum
                                 }}
                             >
-                                Ereignis hinzufügen
+                                Wartung hinzufügen
                             </Button>
                         </Box>
                     </Paper>
@@ -486,55 +528,12 @@ export default function Dashboard() {
                 currentCar={selectedCar}
             />
             
-            <AddEventDialog 
-                open={isAddEventDialogOpen}
-                onClose={() => setIsAddEventDialogOpen(false)}
-                onAdd={handleAddEvent}
+            <AddMaintenanceDialog 
+                open={isAddMaintenanceDialogOpen}
+                onClose={() => setIsAddMaintenanceDialogOpen(false)}
+                onSaved={handleAddMaintenance}
+                carId={selectedCar?.id}
             />
-            </Container>
-            
-            {/* Debug-Info für extrahierte Farben in Development */}
-            {extractedColors && process.env.NODE_ENV === 'development' && (
-                <Box sx={{ 
-                    position: 'fixed', 
-                    bottom: 16, 
-                    right: 16, 
-                    p: 2, 
-                    bgcolor: 'background.paper', 
-                    borderRadius: 1, 
-                    boxShadow: 2,
-                    fontSize: '0.75rem',
-                    maxWidth: 200,
-                    zIndex: 1000
-                }}>
-                    <Typography variant="caption" display="block">
-                        Auto-Farben:
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                        <Box sx={{ 
-                            width: 20, 
-                            height: 20, 
-                            bgcolor: extractedColors.primary, 
-                            borderRadius: 0.5,
-                            border: '1px solid #ccc'
-                        }} />
-                        <Box sx={{ 
-                            width: 20, 
-                            height: 20, 
-                            bgcolor: extractedColors.secondary, 
-                            borderRadius: 0.5,
-                            border: '1px solid #ccc'
-                        }} />
-                        <Box sx={{ 
-                            width: 20, 
-                            height: 20, 
-                            bgcolor: extractedColors.accent, 
-                            borderRadius: 0.5,
-                            border: '1px solid #ccc'
-                        }} />
-                    </Box>
-                </Box>
-            )}
-        </ThemeProvider>
+        </Container>
     );
 }

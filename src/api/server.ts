@@ -11,6 +11,7 @@ import authRoutes from './routes/authRoutes';
 import eventRoutes from './routes/eventRoutes';
 import maintenanceRoutes from './routes/maintenanceRoutes';
 import maintenanceTypeRoutes from './routes/maintenanceTypeRoutes';
+import investmentRoutes from './routes/investmentRoutes';
 import { optionalAuth } from './middleware/auth';
 
 async function startServer() {
@@ -87,6 +88,7 @@ async function startServer() {
         app.use('/api', optionalAuth, eventRoutes);
         app.use('/api/maintenance', optionalAuth, maintenanceRoutes);
         app.use('/api/maintenance-intervals', optionalAuth, maintenanceTypeRoutes);
+        app.use('/api/investments', optionalAuth, investmentRoutes);
 
         // Debug route for useIndividualIntervals issue
         app.get('/api/debug/car/:id', async (req, res) => {

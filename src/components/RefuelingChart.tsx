@@ -35,7 +35,7 @@ import { jwtDecode } from 'jwt-decode';
 import type { Refueling } from '../database/entities/Refueling';
 import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
-import { chartColors } from '../theme/theme';
+import { getChartColors } from '../theme/theme';
 import dayjs from 'dayjs';
 
 export type TimeRange = 'all' | 'ytd' | 'lastYear' | 'lastMonth';
@@ -78,9 +78,12 @@ export default function RefuelingChart({ refreshTrigger }: RefuelingChartProps) 
     });
     
     const { token } = useAuth();
-    const { chartSettings } = useSettings();
+    const { chartSettings, manualColors } = useSettings();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    // Chart Colors basierend auf manuellen Farben
+    const chartColors = getChartColors(manualColors || undefined);
 
     // Funktion zum Ändern des TimeRange und Speichern im LocalStorage
     const handleTimeRangeChange = (newTimeRange: TimeRange) => {
