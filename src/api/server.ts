@@ -98,7 +98,11 @@ async function startServer() {
             app.use(express.static(path.join(__dirname, '../../dist')));
             
             // Handle client-side routing - send all non-API requests to index.html
-            app.get('/*', (req, res) => {
+            app.use((req, res, next) => {
+                // Skip API routes
+                if (req.path.startsWith('/api')) {
+                    return next();
+                }
                 res.sendFile(path.join(__dirname, '../../dist/index.html'));
             });
         }
