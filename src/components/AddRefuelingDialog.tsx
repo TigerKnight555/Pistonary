@@ -1,0 +1,237 @@
+import { useState } from 'react';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
+    Stack,
+    InputAdornment,
+    Typography,
+    Divider,
+    FormControlLabel,
+    Checkbox,
+    Box,
+    useTheme,
+    useMediaQuery
+} from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { de } from 'date-fns/locale';
+import { useAuth } from '../contexts/AuthContext';
+import { jwtDecode } from 'jwt-decode';
+import type { Car } from '../database/entities/Car';
+import type { Refueling } from '../database/entities/Refueling';
+import type { JWTPayload } from '../types/Auth';
+import MileageInput from './MileageInput';
+
+interface AddRefuelingDialogProps {
+    open: boolean;
+    onClose: () => void;
+    onAdd: (refueling: Omit<Refueling, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+    currentCar: Car | null;
+}
+
+export default function AddRefuelingDialog({ open, onClose, onAdd, currentCar }: AddRefuelingDialogProps) {
+    const { token } = useAuth();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const [formData, setFormData] = useState({
+        liters: '',
+        mileage: '',
+        totalPrice: '',
+        isPartialRefueling: false
+    });
+    const [mileageUnit, setMileageUnit] = useState<'km' | 'mi'>('km');
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+    // Kilometerstand in km umrechnen (falls nötig)
+    const getMileageInKm = (): number => {
+        const mileageValue = Number(formData.mileage);
+        return mileageUnit === 'mi' ? mileageValue * 1.60934 : mileageValue;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Auto-ID aus dem JWT Token holen
+        if (!token) {
+            alert('Nicht angemeldet');
+            return;
+        }
+        
+        let selectedCarId: number;
+        try {
+            const decoded = jwtDecode<JWTPayload>(token);
+            
+            if (!decoded.selectedCarId) {
+                alert('Kein Auto ausgewählt');
+                return;
+            }
+            
+            selectedCarId = decoded.selectedCarId;
+        } catch (error) {
+            console.error('Fehler beim Dekodieren des Tokens:', error);
+            alert('Token-Fehler');
+            return;
+        }
+        
+        if (!currentCar) {
+            alert('Auto-Daten nicht verfügbar');
+            return;
+        }
+        
+        await onAdd({
+            date: selectedDate.toISOString(), // Ausgewähltes Datum
+            carId: selectedCarId, // Auto-ID aus JWT Token
+            car: currentCar, // Auto-Objekt für die Anzeige
+            amount: Number(formData.liters),
+            price: Number(formData.totalPrice),
+            mileage: getMileageInKm(), // Kilometerstand in km (automatisch umgerechnet)
+            isPartialRefueling: formData.isPartialRefueling, // Teiltankung-Option
+            notes: undefined
+        });
+
+        // Formular zurücksetzen
+        setFormData({
+            liters: '',
+            mileage: '',
+            totalPrice: '',
+            isPartialRefueling: false
+        });
+        setMileageUnit('km'); // Einheit zurücksetzen
+        setSelectedDate(new Date()); // Datum zurücksetzen
+        onClose();
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    // Preis pro Liter berechnen
+    const pricePerLiter = formData.liters && formData.totalPrice ? 
+        (Number(formData.totalPrice) / Number(formData.liters)).toFixed(3) : '';
+
+    return (
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+            <form onSubmit={handleSubmit}>
+                <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+                    Tankung hinzufügen
+                </DialogTitle>
+                
+                {currentCar && (
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', px: 3, pb: 2 }}>
+                        {currentCar.manufacturer} {currentCar.model}
+                    </Typography>
+                )}
+
+                <DialogContent>
+                    <Stack spacing={3}>
+                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
+                            <DatePicker
+                                label="Datum der Tankung *"
+                                value={selectedDate}
+                                onChange={(newValue) => setSelectedDate(newValue ? new Date(newValue.toString()) : new Date())}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        sx: {
+                                            '& .MuiOutlinedInput-notchedOutline': {
+                                                borderColor: 'rgba(255,255,255,0.3) !important'
+                                            }
+                                        }
+                                    }
+                                }}
+                            />
+                        </LocalizationProvider>
+
+                        <Box sx={{ 
+                            display: 'flex', 
+                            gap: 2,
+                            flexDirection: isMobile ? 'column' : 'row'
+                        }}>
+                            <TextField
+                                name="liters"
+                                label="Getankte Liter"
+                                type="number"
+                                value={formData.liters}
+                                onChange={handleChange}
+                                required
+                                fullWidth
+                                autoFocus
+                                inputProps={{ min: 0, step: 0.01 }}
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="end">L</InputAdornment>
+                                }}
+                            />
+
+                            <TextField
+                                name="totalPrice"
+                                label="Gesamtpreis"
+                                type="number"
+                                value={formData.totalPrice}
+                                onChange={handleChange}
+                                required
+                                fullWidth
+                                inputProps={{ min: 0, step: 0.01 }}
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="end">€</InputAdornment>
+                                }}
+                            />
+                        </Box>
+
+                        {pricePerLiter && (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                                Preis pro Liter: {pricePerLiter} €
+                            </Typography>
+                        )}
+
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    name="isPartialRefueling"
+                                    checked={formData.isPartialRefueling}
+                                    onChange={handleChange}
+                                />
+                            }
+                            label="Teiltankung (Tank nicht vollgemacht)"
+                        />
+
+                        <Divider />
+
+                        <MileageInput
+                            value={formData.mileage}
+                            unit={mileageUnit}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, mileage: value }))}
+                            onUnitChange={setMileageUnit}
+                            label="Kilometerstand eingeben:"
+                            required
+                            clearOnUnitChange={true}
+                            showConversion={true}
+                        />
+                    </Stack>
+                </DialogContent>
+                
+                <DialogActions sx={{ px: 3, pb: 3 }}>
+                    <Button onClick={onClose} sx={{ flex: 1 }}>
+                        Abbrechen
+                    </Button>
+                    <Button 
+                        type="submit" 
+                        variant="contained" 
+                        sx={{ flex: 2 }}
+                        disabled={!formData.liters || !formData.totalPrice || !formData.mileage}
+                    >
+                        Speichern
+                    </Button>
+                </DialogActions>
+            </form>
+        </Dialog>
+    );
+}
