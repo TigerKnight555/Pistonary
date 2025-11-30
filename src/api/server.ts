@@ -90,6 +90,19 @@ async function startServer() {
         app.use('/api/maintenance-intervals', optionalAuth, maintenanceTypeRoutes);
         app.use('/api/investments', optionalAuth, investmentRoutes);
 
+        // Serve static frontend files in production
+        if (process.env.NODE_ENV === 'production') {
+            const path = require('path');
+            
+            // Serve static files from dist directory
+            app.use(express.static(path.join(__dirname, '../../dist')));
+            
+            // Handle client-side routing - send all non-API requests to index.html
+            app.get('*', (req, res) => {
+                res.sendFile(path.join(__dirname, '../../dist/index.html'));
+            });
+        }
+
         // Debug route for useIndividualIntervals issue
         app.get('/api/debug/car/:id', async (req, res) => {
             try {
