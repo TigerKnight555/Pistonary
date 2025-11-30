@@ -82,9 +82,21 @@ chmod 755 data
 
 ### Schritt 4: Docker-Image bauen und Container starten
 
+**Wichtig:** Prüfe zuerst, ob Port 3001 frei ist:
+```bash
+sudo lsof -i :3001
+# Wenn nichts angezeigt wird, ist der Port frei ✅
+# Wenn etwas angezeigt wird, siehe "Konfiguration" → Port ändern
+```
+
+Container starten:
 ```bash
 # Mit Docker Compose (empfohlen)
 docker compose up -d
+
+# Falls der Build fehlschlägt, versuche es mit --no-cache:
+# docker compose build --no-cache
+# docker compose up -d
 
 # ODER: Manuell mit Docker
 docker build -t pistonary .
@@ -113,6 +125,36 @@ docker logs -f pistonary
 Die Anwendung sollte jetzt unter `http://deine-server-ip:3001` erreichbar sein!
 
 ## 🔧 Konfiguration
+
+### ⚠️ Wichtig: Andere Docker-Container auf dem Server
+
+Pistonary läuft **komplett isoliert** in seinem eigenen Container und Netzwerk. Deine bestehenden Docker-Container sind **absolut sicher** und werden nicht beeinflusst!
+
+**Möglicher Konflikt:** Port 3001 könnte schon belegt sein.
+
+**Lösung - Port prüfen:**
+```bash
+# Prüfe, ob Port 3001 schon verwendet wird
+sudo netstat -tulpn | grep 3001
+# oder
+sudo lsof -i :3001
+```
+
+**Falls Port belegt - Anderen Port verwenden:**
+
+Bearbeite die `docker-compose.yml`:
+```bash
+nano docker-compose.yml
+```
+
+Ändere die Zeile unter `ports:`:
+```yaml
+ports:
+  - "8080:3001"  # Nutze 8080 statt 3001 (oder jeden anderen freien Port)
+```
+
+Die **linke Zahl** ist der Port auf deinem Server (änderbar).  
+Die **rechte Zahl** ist der Port im Container (nicht ändern!).
 
 ### Umgebungsvariablen anpassen
 

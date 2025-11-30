@@ -36,8 +36,8 @@ function TabPanel(props: TabPanelProps) {
 
 export default function LoginPage() {
   const [tab, setTab] = useState(0);
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('test123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -179,12 +179,6 @@ export default function LoginPage() {
             </Stack>
           </form>
         </TabPanel>
-
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Zum Testen: test@example.com / test123
-          </Typography>
-        </Box>
       </Paper>
     </Container>
   );

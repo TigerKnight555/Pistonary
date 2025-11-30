@@ -34,12 +34,12 @@ async function startServer() {
         }
 
         const app = express();
-        const PORT = process.env.PORT || 3002;
+        const PORT = parseInt(process.env.PORT || '3001', 10);
 
         // Middleware
         app.use(cors({
-            // Erlaubt Zugriffe von allen möglichen Vite Ports
-            origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178', 'http://localhost:5179', 'http://localhost:5180', 'http://localhost:5181'],
+            // Erlaube alle Origins in Production
+            origin: true,
             credentials: true
         }));
         // Erhöhe das Limit für JSON-Payloads um Base64-Bilder zu unterstützen
@@ -90,6 +90,23 @@ async function startServer() {
         app.use('/api/maintenance-intervals', optionalAuth, maintenanceTypeRoutes);
         app.use('/api/investments', optionalAuth, investmentRoutes);
 
+        // Serve static frontend files in production
+        if (process.env.NODE_ENV === 'production') {
+            const path = require('path');
+            
+            // Serve static files from dist directory
+            app.use(express.static(path.join(__dirname, '../../dist')));
+            
+            // Handle client-side routing - send all non-API requests to index.html
+            app.use((req, res, next) => {
+                // Skip API routes
+                if (req.path.startsWith('/api')) {
+                    return next();
+                }
+                res.sendFile(path.join(__dirname, '../../dist/index.html'));
+            });
+        }
+
         // Debug route for useIndividualIntervals issue
         app.get('/api/debug/car/:id', async (req, res) => {
             try {
@@ -131,9 +148,9 @@ async function startServer() {
             }
         });
 
-        // Starte den Server
-        const server = app.listen(PORT, () => {
-            console.log(`Server läuft auf http://localhost:${PORT}`);
+        // Starte den Server auf 0.0.0.0 um von außen erreichbar zu sein
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server läuft auf http://0.0.0.0:${PORT}`);
         });
 
         // Verhindere, dass der Server sich beendet

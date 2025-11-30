@@ -1,19 +1,19 @@
 # Multi-stage build for Pistonary
-# Stage 1: Build the frontend
-FROM node:20-alpine AS frontend-builder
+# Stage 1: Build
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install ALL dependencies (including dev dependencies for build)
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build frontend
+# Build frontend (nur Vite, ohne TypeScript-Check)
 RUN npm run build
 
 # Stage 2: Production image
@@ -21,20 +21,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install production dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Install ALL dependencies (ts-node und tsconfig-paths werden für den Server benötigt)
+RUN npm ci
 
 # Copy built frontend from builder stage
-COPY --from=frontend-builder /app/dist ./dist
+COPY --from=builder /app/dist ./dist
 
-# Copy server code
-COPY src/api ./src/api
-COPY src/database ./src/database
-COPY src/types ./src/types
-COPY src/config ./src/config
-COPY tsconfig.server.json ./
-COPY tsconfig.json ./
+# Copy ALL source code (TypeScript wird zur Laufzeit mit ts-node ausgeführt)
+COPY src ./src
+COPY tsconfig*.json ./
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
