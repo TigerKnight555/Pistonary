@@ -10,7 +10,7 @@
     "build": "vite build",
     "build:server": "tsc --project tsconfig.server.json",
     "build:check": "tsc -b && vite build",
-    "start:server": "node dist-server/server.js",
+    "start:server": "node dist-server/api/server.js",
     "start": "npm run start:server",
     "production": "npm run build && npm run build:server && npm run start:server",
     "lint": "eslint .",
