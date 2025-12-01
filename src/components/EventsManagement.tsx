@@ -45,7 +45,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
 import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 // Temporäre Event-Interface (sollte später aus der richtigen Datei importiert werden)
 interface Event {
@@ -134,7 +134,7 @@ function EditEventDialog({ open, event, onClose, onSave }: EditEventDialogProps)
                             <DatePicker
                                 label="Datum"
                                 value={formData.date}
-                                onChange={(newValue) => setFormData(prev => ({ ...prev, date: newValue || dayjs() }))}
+                                onChange={(newValue) => setFormData(prev => ({ ...prev, date: (newValue as Dayjs) || dayjs() }))}
                                 format="DD.MM.YYYY"
                                 slotProps={{
                                     textField: {

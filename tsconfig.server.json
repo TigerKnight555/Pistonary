@@ -8,8 +8,8 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "skipLibCheck": true,
-    "outDir": "./dist",
+    "outDir": "./dist-server",
     "rootDir": "./src"
   },
-  "include": ["src/api/**/*", "src/database/**/*"]
+  "include": ["src/api/**/*", "src/database/**/*", "src/types/**/*"]
 }

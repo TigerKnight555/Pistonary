@@ -55,16 +55,16 @@ export default function MaintenanceCategorySelectionDialog({
     // Kraftstoff-abhängige Filterung
     if (fuelType.includes('elektro')) {
       // Elektrofahrzeuge: Keine Motoröl, Zündkerzen, Glühkerzen, Filter
-      relevantTypes = relevantTypes.filter(type => ![
-        MaintenanceType.ENGINE_OIL,
-        MaintenanceType.OIL_FILTER,
+      const excludedTypes: MaintenanceType[] = [
+        MaintenanceType.OIL_CHANGE,
         MaintenanceType.SPARK_PLUGS,
         MaintenanceType.GLOW_PLUGS,
         MaintenanceType.AIR_FILTER,
         MaintenanceType.FUEL_FILTER,
         MaintenanceType.MANUAL_TRANSMISSION_FLUID,
         MaintenanceType.AUTOMATIC_TRANSMISSION_FLUID
-      ].includes(type));
+      ];
+      relevantTypes = relevantTypes.filter(type => !excludedTypes.includes(type));
     } else {
       // Verbrenner: Glühkerzen nur bei Diesel
       if (!fuelType.includes('diesel')) {

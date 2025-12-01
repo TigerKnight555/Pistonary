@@ -493,17 +493,17 @@ export default function Dashboard() {
                 }}
             >
                 {/* Wartungsstatus Widget */}
-                <Grid item xs={12} sx={{ width: '100%' }}>
+                <Grid size={12} sx={{ width: '100%' }}>
                     <MaintenanceStatusWidget />
                 </Grid>
 
                 {/* Gesamtkosten Widget */}
-                <Grid item xs={12} sx={{ width: '100%' }}>
+                <Grid size={12} sx={{ width: '100%' }}>
                     <TotalCostsWidget />
                 </Grid>
 
                 {/* Action Buttons */}
-                <Grid item xs={12} sx={{ width: '100%' }}>
+                <Grid size={12} sx={{ width: '100%' }}>
                     <Paper sx={{ 
                         p: isMobile ? 2 : 3,
                         textAlign: 'center',
@@ -550,14 +550,14 @@ export default function Dashboard() {
                 </Grid>
 
                 {/* Tankstatistiken Chart */}
-                <Grid item xs={12} sx={{ width: '100%' }}>
+                <Grid size={12} sx={{ width: '100%' }}>
                     <RefuelingChart 
                         refreshTrigger={refuelingUpdateTrigger}
                     />
                 </Grid>
 
                 {/* Letzte Tankungen */}
-                <Grid item xs={12} sx={{ width: '100%' }}>
+                <Grid size={12} sx={{ width: '100%' }}>
                     <RecentRefuelings refreshTrigger={refuelingUpdateTrigger} />
                 </Grid>
             </Grid>

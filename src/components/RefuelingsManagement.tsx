@@ -46,7 +46,7 @@ import type { JWTPayload } from '../types/Auth';
 import { API_BASE_URL } from '../config/api';
 
 import SwipeableRefuelingCard from './SwipeableRefuelingCard';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 interface EditRefuelingDialogProps {
     open: boolean;
@@ -134,7 +134,7 @@ function EditRefuelingDialog({ open, refueling, onClose, onSave }: EditRefueling
                             <DatePicker
                                 label="Datum"
                                 value={formData.date}
-                                onChange={(newValue) => setFormData(prev => ({ ...prev, date: newValue || dayjs() }))}
+                                onChange={(newValue) => setFormData(prev => ({ ...prev, date: (newValue as Dayjs) || dayjs() }))}
                                 format="DD.MM.YYYY"
                                 slotProps={{
                                     textField: {
