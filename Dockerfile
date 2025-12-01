@@ -13,8 +13,11 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build frontend (nur Vite, ohne TypeScript-Check)
+# Build frontend
 RUN npm run build
+
+# Build backend (TypeScript -> JavaScript)
+RUN npm run build:server
 
 # Stage 2: Production image
 FROM node:20-alpine
@@ -24,15 +27,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (ts-node und tsconfig-paths werden für den Server benötigt)
-RUN npm ci
+# Install only production dependencies
+RUN npm ci --only=production
 
 # Copy built frontend from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy ALL source code (TypeScript wird zur Laufzeit mit ts-node ausgeführt)
-COPY src ./src
-COPY tsconfig*.json ./
+# Copy built backend from builder stage
+COPY --from=builder /app/dist-server ./dist-server
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
