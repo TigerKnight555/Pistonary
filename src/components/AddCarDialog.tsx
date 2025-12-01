@@ -107,23 +107,20 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
             : convertDistanceValue(Number(formData.mileage), 'mi', 'km');
             
         onAdd({
-            ...formData,
+            manufacturer: formData.manufacturer,
+            model: formData.model,
+            year: Number(formData.year),
             power: powerInPs,
             powerUnit: formData.powerUnit,
-            year: Number(formData.year),
+            licensePlate: formData.licensePlate,
+            transmission: formData.transmission,
+            fuel: formData.fuel,
             engineSize: formData.engineSize ? Number(formData.engineSize) : undefined,
             mileage: formData.mileage ? mileageInKm : undefined,
             mileageUnit: formData.mileageUnit,
             notes: formData.notes || undefined,
-            image: formData.image || undefined,
-            userId: 0, // wird vom Backend gesetzt
-            user: {} as any, // wird vom Backend gesetzt
-            maintenanceIntervals: [],
-            useStandardIntervals: true,
-            useIndividualIntervals: false,
-            maintenanceCategories: undefined,
-            events: []
-        });
+            image: formData.image || undefined
+        } as any);
         setFormData({
             manufacturer: '',
             model: '',
@@ -358,13 +355,24 @@ export default function AddCarDialog({ open, onClose, onAdd }: AddCarDialogProps
                             </Box>
                         )}
                     </Box>
+                    
                     <TextField
                         margin="normal"
                         fullWidth
-                        type="number"
-                        label="Kilometerstand"
-                        name="mileage"
-                        value={formData.mileage}
+                        label="Kennzeichen"
+                        name="licensePlate"
+                        value={formData.licensePlate}
+                        onChange={handleChange}
+                    />
+                    
+                    <TextField
+                        margin="normal"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Notizen"
+                        name="notes"
+                        value={formData.notes}
                         onChange={handleChange}
                     />
                 </DialogContent>

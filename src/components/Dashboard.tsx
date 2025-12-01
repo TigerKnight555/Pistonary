@@ -8,6 +8,7 @@ import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddRefuelingDialog from './AddRefuelingDialog';
 import AddMaintenanceDialog from './AddMaintenanceDialog';
+import AddCarDialog from './AddCarDialog';
 import RecentRefuelings from './RecentRefuelings';
 import RefuelingChart from './RefuelingChart';
 import MaintenanceStatusWidget from './MaintenanceStatusWidget';
@@ -25,6 +26,7 @@ export default function Dashboard() {
     const [currentCarIndex, setCurrentCarIndex] = useState(0);
     const [isAddRefuelingDialogOpen, setIsAddRefuelingDialogOpen] = useState(false);
     const [isAddMaintenanceDialogOpen, setIsAddMaintenanceDialogOpen] = useState(false);
+    const [isAddCarDialogOpen, setIsAddCarDialogOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [refuelingUpdateTrigger, setRefuelingUpdateTrigger] = useState(0);
 
@@ -166,6 +168,41 @@ export default function Dashboard() {
         setRefuelingUpdateTrigger(prev => prev + 1); // Triggert Update der Widgets
     };
 
+    const handleAddCar = async (newCar: Omit<Car, 'id' | 'created_at' | 'updated_at' | 'refuelings'>) => {
+        try {
+            console.log('Versuche Auto zu speichern:', newCar);
+            const token = localStorage.getItem('auth_token');
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            console.log('API URL:', `${API_BASE_URL}/cars`);
+            const response = await fetch(`${API_BASE_URL}/cars`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(newCar),
+            });
+            
+            console.log('Response Status:', response.status);
+            const responseData = await response.json();
+            console.log('Response Data:', responseData);
+            
+            if (!response.ok) {
+                throw new Error(`Fehler beim Speichern: ${response.status} - ${JSON.stringify(responseData)}`);
+            }
+            
+            setIsAddCarDialogOpen(false);
+            await fetchCars(); // Reload cars to include the new one
+        } catch (error) {
+            console.error('Error adding car:', error);
+            setError(error instanceof Error ? error.message : 'Fehler beim Speichern des Fahrzeugs');
+        }
+    };
+
     useEffect(() => {
         fetchCars();
     }, []);
@@ -182,27 +219,32 @@ export default function Dashboard() {
 
     if (cars.length === 0) {
         return (
-            <Container maxWidth="md" sx={{ mt: 4 }}>
-                <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400', mb: 2 }} />
-                    <Typography variant="h5" gutterBottom>
-                        Noch keine Fahrzeuge vorhanden
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                        Fügen Sie Ihr erstes Fahrzeug hinzu, um mit der Kraftstoffverfolgung zu beginnen.
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        startIcon={<DirectionsCarIcon />}
-                        onClick={() => {
-                            // Navigate to add car functionality
-                            console.log('Add car functionality needed');
-                        }}
-                    >
-                        Erstes Fahrzeug hinzufügen
-                    </Button>
-                </Paper>
-            </Container>
+            <>
+                <Container maxWidth="md" sx={{ mt: 4 }}>
+                    <Paper sx={{ p: 4, textAlign: 'center' }}>
+                        <DirectionsCarIcon sx={{ fontSize: 80, color: 'grey.400', mb: 2 }} />
+                        <Typography variant="h5" gutterBottom>
+                            Noch keine Fahrzeuge vorhanden
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                            Fügen Sie Ihr erstes Fahrzeug hinzu, um mit der Kraftstoffverfolgung zu beginnen.
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            startIcon={<DirectionsCarIcon />}
+                            onClick={() => setIsAddCarDialogOpen(true)}
+                        >
+                            Erstes Fahrzeug hinzufügen
+                        </Button>
+                    </Paper>
+                </Container>
+                
+                <AddCarDialog 
+                    open={isAddCarDialogOpen}
+                    onClose={() => setIsAddCarDialogOpen(false)}
+                    onAdd={handleAddCar}
+                />
+            </>
         );
     }
 
@@ -533,6 +575,12 @@ export default function Dashboard() {
                 onClose={() => setIsAddMaintenanceDialogOpen(false)}
                 onSaved={handleAddMaintenance}
                 carId={selectedCar?.id}
+            />
+            
+            <AddCarDialog 
+                open={isAddCarDialogOpen}
+                onClose={() => setIsAddCarDialogOpen(false)}
+                onAdd={handleAddCar}
             />
         </Container>
     );

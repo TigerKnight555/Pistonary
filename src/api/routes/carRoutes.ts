@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { carController } from '../controllers/carController';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
@@ -8,10 +9,10 @@ router.get('/cars/test', (req, res) => {
     res.json({ message: 'Car routes are working' });
 });
 
-// Car routes
-router.get('/cars', carController.getAllCars);
-router.get('/cars/:id', carController.getCarById);
-router.get('/cars/:id/debug', async (req, res) => {
+// Car routes (alle erfordern Authentifizierung)
+router.get('/cars', authenticateToken, carController.getAllCars);
+router.get('/cars/:id', authenticateToken, carController.getCarById);
+router.get('/cars/:id/debug', authenticateToken, async (req, res) => {
     try {
         const { AppDataSource } = await import('../../database/connection');
         const id = parseInt(req.params.id);
@@ -32,8 +33,8 @@ router.get('/cars/:id/debug', async (req, res) => {
         return res.status(500).json({ error: (error as Error).message });
     }
 });
-router.post('/cars', carController.createCar);
-router.put('/cars/:id', carController.updateCar);
-router.delete('/cars/:id', carController.deleteCar);
+router.post('/cars', authenticateToken, carController.createCar);
+router.put('/cars/:id', authenticateToken, carController.updateCar);
+router.delete('/cars/:id', authenticateToken, carController.deleteCar);
 
 export default router;

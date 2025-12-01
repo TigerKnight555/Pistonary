@@ -5,10 +5,13 @@
   "type": "commonjs",
   "scripts": {
     "dev": "vite",
-    "server": "ts-node -r tsconfig-paths/register --project tsconfig.server.json src/api/server.ts",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "dev:server": "ts-node -r tsconfig-paths/register --project tsconfig.server.json src/api/server.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build",
     "build:check": "tsc -b && vite build",
+    "start:server": "node dist-server/server.js",
+    "start": "npm run start:server",
+    "production": "npm run build && npm run start:server",
     "lint": "eslint .",
     "preview": "vite preview"
   },

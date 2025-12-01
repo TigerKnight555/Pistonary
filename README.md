@@ -75,6 +75,8 @@ Pistonary ist deine digitale Garage! Hier kannst du:
 
 ## 🚀 Los geht's
 
+### Development (Lokal entwickeln)
+
 ```bash
 # Projekt runterladen
 git clone https://github.com/TigerKnight555/Pistonary.git
@@ -83,14 +85,29 @@ cd Pistonary
 # Alles installieren
 npm install
 
-# Frontend starten
+# Frontend + Backend gleichzeitig starten
+npm run dev:all
+
+# ODER einzeln starten:
+# Frontend (in Terminal 1)
 npm run dev
 
-# Backend starten (in neuem Terminal)
-npm run server
+# Backend (in Terminal 2)
+npm run dev:server
+```
 
-# Production Build
+### Production (Auf Server deployen)
+
+```bash
+# Frontend builden + Backend starten
+npm run production
+
+# ODER Schritt für Schritt:
+# 1. Frontend builden
 npm run build
+
+# 2. Backend starten (served dann auch das gebaute Frontend)
+npm run start
 ```
 
 ## 📱 Handy-optimiert
@@ -140,10 +157,11 @@ cd Pistonary
 # Alles installieren
 npm install
 
-# Backend starten
-npm run server
+# Für Production (Server-Betrieb)
+npm run production
 
-# Frontend starten (in neuem Terminal)
+# Die App läuft dann auf http://localhost:3001
+```
 npm run dev
 ```
 

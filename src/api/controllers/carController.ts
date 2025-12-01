@@ -9,13 +9,18 @@ export const carController = {
             const carRepository = AppDataSource.getRepository(Car);
             const userId = (req as any).user?.userId;
             
+            console.log('getAllCars - userId from token:', userId);
+            console.log('getAllCars - req.user:', (req as any).user);
+            
             let cars;
             if (userId) {
                 // Authenticated user - get only their cars
                 cars = await carRepository.findBy({ userId });
+                console.log('Fetching cars for userId:', userId, 'Found:', cars.length);
             } else {
                 // Unauthenticated - for now, show all cars (will be restricted later)
                 cars = await carRepository.find();
+                console.log('No userId - fetching all cars. Found:', cars.length);
             }
             
             console.log('Cars fetched:', cars.map(car => ({ 

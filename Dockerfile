@@ -44,5 +44,5 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Start the server
-CMD ["npm", "run", "server"]
+# Start the server (uses the new production script)
+CMD ["npm", "run", "start:server"]
